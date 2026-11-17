@@ -1,0 +1,138 @@
+@*
+  Nome del progetto: HelpDesk URP
+  Copyright (C) 2026 Agenzia regionale per la protezione dell'ambiente ligure
+  ---
+  Questo programma è software libero: puoi ridistribuirlo e/o modificarlo
+  secondo i termini della GNU Affero General Public License pubblicata dalla
+  Free Software Foundation, sia la versione 3 della licenza, sia (a tua scelta)
+  qualsiasi versione successiva.
+  ---
+  Questo programma è distribuito nella speranza che possa essere utile,
+  ma SENZA ALCUNA GARANZIA; senza nemmeno la garanzia implicita di
+  COMMERCIABILITÀ o IDONEITÀ PER UNO SCOPO PARTICOLARE. Vedi la
+  GNU Affero General Public License per ulteriori dettagli.
+  ---
+  Dovresti aver ricevuto una copia della GNU Affero General Public License
+  insieme a questo programma. In caso contrario, vedi <https://www.gnu.org/licenses/>.
+*@
+
+@page "/HomeTest"
+
+<div class="home-container">
+    <h1>Questionari URP</h1>
+    <p>Applicazione di compilazione questionari.</p>
+
+    <h2>Accesso al questionario</h2>
+
+    <div class="test-links">
+        <div class="link-section">
+            <h3>URL libera (esempio)</h3>
+            <p>Sostituisci i parametri con valori reali:</p>
+            <code>/questionario/libero?sorgente=ARPAL&codice=QST001</code>
+            <p>
+                <a href="/questionario/libero?sorgente=ARPAL&codice=TEST001" class="test-link">
+                    Prova con codice TEST001
+                </a>
+            </p>
+        </div>
+
+        <div class="link-section">
+            <h3>URL personale (esempio)</h3>
+            <p>Sostituisci il token con un valore reale:</p>
+            <code>/questionario/personale/token123</code>
+            <p>
+                <a href="/questionario/personale/TOKEN001" class="test-link">
+                    Prova con token TOKEN001
+                </a>
+            </p>
+        </div>
+    </div>
+
+    <div class="info-box">
+        <h3>Note sulla struttura</h3>
+        <ul>
+            <li>F001 implementato: risoluzione dell'accesso (libero e personale)</li>
+            <li>F002 implementato: compilazione delle domande in una singola pagina</li>
+            <li>F003 implementato: riepilogo, modifica e invio definitivo delle risposte</li>
+            <li>F004 implementato: abbandono compilazione con richiesta di conferma</li>
+            <li>Gli errori di accesso mostrano messaggi appropriati con link di uscita</li>
+            <li>Lo stato è isolato per circuito Blazor (tab diverse mantengono stati separati)</li>
+        </ul>
+    </div>
+</div>
+
+<style>
+    .home-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .home-container h1 {
+        color: #333;
+    }
+
+    .test-links {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin: 2rem 0;
+    }
+
+    .link-section {
+        border: 1px solid #ddd;
+        padding: 1.5rem;
+        border-radius: 4px;
+        background-color: #f9f9f9;
+    }
+
+    .link-section h3 {
+        margin-top: 0;
+    }
+
+    .link-section code {
+        display: block;
+        background-color: #f0f0f0;
+        padding: 0.5rem;
+        border-radius: 3px;
+        margin: 0.5rem 0;
+        font-size: 0.9rem;
+        overflow-x: auto;
+    }
+
+    .test-link {
+        display: inline-block;
+        margin-top: 0.5rem;
+        padding: 0.5rem 1rem;
+        background-color: #1976d2;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+    }
+
+    .test-link:hover {
+        background-color: #1565c0;
+    }
+
+    .info-box {
+        background-color: #e3f2fd;
+        border-left: 4px solid #1976d2;
+        padding: 1rem 1.5rem;
+        border-radius: 2px;
+        margin-top: 2rem;
+    }
+
+    .info-box h3 {
+        margin-top: 0;
+    }
+
+    .info-box ul {
+        margin: 0.5rem 0;
+        padding-left: 1.5rem;
+    }
+
+    .info-box li {
+        margin: 0.5rem 0;
+    }
+</style>

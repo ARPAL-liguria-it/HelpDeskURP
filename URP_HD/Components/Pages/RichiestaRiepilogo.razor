@@ -1,0 +1,156 @@
+﻿@*
+  Nome del progetto: HelpDesk URP
+  Copyright (C) 2026 Agenzia regionale per la protezione dell'ambiente ligure
+  ---
+  Questo programma è software libero: puoi ridistribuirlo e/o modificarlo
+  secondo i termini della GNU Affero General Public License pubblicata dalla
+  Free Software Foundation, sia la versione 3 della licenza, sia (a tua scelta)
+  qualsiasi versione successiva.
+  ---
+  Questo programma è distribuito nella speranza che possa essere utile,
+  ma SENZA ALCUNA GARANZIA; senza nemmeno la garanzia implicita di
+  COMMERCIABILITÀ o IDONEITÀ PER UNO SCOPO PARTICOLARE. Vedi la
+  GNU Affero General Public License per ulteriori dettagli.
+  ---
+  Dovresti aver ricevuto una copia della GNU Affero General Public License
+  insieme a questo programma. In caso contrario, vedi <https://www.gnu.org/licenses/>.
+*@
+
+@inject IDbContextFactory<URP_HDContext> DbFactory
+@inject IConfiguration Configuration
+@inject EmailService EmailService
+@inject IHostEnvironment HostEnvironment
+@inject IJSRuntime JS
+@inject NavigationManager NavigationManager
+
+@if (isLoading)
+{
+    <!-- Mostra il componente di attesa -->
+    <div class="loading-overlay">
+        <div class="spinner"></div>
+        <p>Invio in corso...</p>
+    </div>
+}
+
+<h3>Riepilogo della richiesta</h3>
+
+<p>Verificare le informazioni inserite prima dell'invio.</p>
+
+<FluentStack Orientation="Orientation.Vertical"
+             VerticalGap="12"
+             Style="width:100%;">
+
+    <FluentMessageBar Intent="MessageIntent.Error" AllowDismiss="false" Visible="@elencoErrori.Any()">
+        @foreach (var errore in elencoErrori)
+        {
+            <div>@errore</div>
+        }
+    </FluentMessageBar>
+
+    <FluentTextField Label="Cognome"
+                     Value="@State.Richiesta.COGNOME_AUTORE"
+                     ReadOnly="true"
+                     style="width: 100%;" />
+
+    <FluentTextField Label="Nome"
+                     Value="@State.Richiesta.NOME_AUTORE"
+                     ReadOnly="true"
+                     style="width: 100%;" />
+
+    <FluentTextField Label="E-mail"
+                     Value="@State.Richiesta.EMAIL_AUTORE"
+                     ReadOnly="true"
+                     style="width: 100%;" />
+
+    <FluentTextField Label="PEC"
+                     Value="@State.Richiesta.PEC_AUTORE"
+                     ReadOnly="true"
+                     style="width: 100%;" />
+
+    <FluentTextField Label="Telefono"
+                     Value="@State.Richiesta.TELEFONO_AUTORE"
+                     ReadOnly="true"
+                     style="width: 100%;" />
+
+    <FluentTextField Label="Chi sono"
+                     Value="@DESCRIZIONE_TIPO_AUTORE"
+                     ReadOnly="true"
+                     style="width: 100%;" />
+
+    <FluentTextField Label="Tematica"
+                     Value="@DESCRIZIONE_TIPO_TEMATICA"
+                     ReadOnly="true"
+                     style="width: 100%;" />
+
+    <FluentTextField Label="Luogo"
+                     Value="@DESCRIZIONE_TIPO_LUOGO"
+                     ReadOnly="true"
+                     style="width: 100%;" />
+
+    @if (State.Richiesta.ID_TIPO_LUOGO == 5)
+    {
+        <FluentTextField Label="Comune"
+                         Value="@State.Richiesta.COMUNE_LUOGO"
+                         ReadOnly="true"
+                         style="width: 100%;" />
+    }
+
+    <FluentTextField Label="Indirizzo"
+                     Value="@State.Richiesta.INDIRIZZO"
+                     ReadOnly="true"
+                     style="width: 100%;" />
+
+    <FluentTextArea Label="Testo della richiesta"
+                    Value="@State.Richiesta.TESTO"
+                    ReadOnly="true"
+                    Rows="6"
+                    style="width: 100%;" />
+
+    @if (State.AllegatiCaricati.Any())
+    {
+        <h2>Allegati</h2>
+        @foreach (var allegato in State.AllegatiCaricati)
+        {
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                <span>
+                    @allegato.NomeFile
+                    @($"{Decimal.Divide(allegato.DimensioneFile, 1024):N} KB")
+                </span>
+            </div>
+        }
+    }
+
+    <FluentCheckbox @bind-Value="@checkInformativa"
+                    Label="Dichiaro di aver preso visione e compreso i contenuti delle informazioni sul trattamento dati ai sensi dell'art. 13 GDPR fornite da ARPAL."
+                    Required="true" />
+    <a href="@Configuration["URLPrivacy"]" target="_blank">Informativa sul trattamento dei dati</a>
+
+    <FluentStack Orientation="Orientation.Horizontal"
+                 HorizontalGap="16"
+                 Style="margin-top:20px;">
+
+        <FluentButton Appearance="Appearance.Neutral"
+                      Type="ButtonType.Button"
+                      @onclick="Indietro"
+                      Disabled="@(State.Step == 1)">
+            Indietro
+        </FluentButton>
+        <FluentButton Appearance="Appearance.Accent"
+                      Type="ButtonType.Button"
+                      @onclick="InviaRichiesta"
+                      Disabled="@(isLoading || State.Step == 4 || !checkInformativa)">
+            @if (isLoading)
+            {
+                <span>Attendere...</span>
+            }
+            else
+            {
+                <span>Invia richiesta</span>
+            }
+        </FluentButton>
+    </FluentStack>
+</FluentStack>
+
+@code {
+
+}

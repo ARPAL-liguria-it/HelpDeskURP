@@ -1,0 +1,173 @@
+﻿@*
+  Nome del progetto: HelpDesk URP
+  Copyright (C) 2026 Agenzia regionale per la protezione dell'ambiente ligure
+  ---
+  Questo programma è software libero: puoi ridistribuirlo e/o modificarlo
+  secondo i termini della GNU Affero General Public License pubblicata dalla
+  Free Software Foundation, sia la versione 3 della licenza, sia (a tua scelta)
+  qualsiasi versione successiva.
+  ---
+  Questo programma è distribuito nella speranza che possa essere utile,
+  ma SENZA ALCUNA GARANZIA; senza nemmeno la garanzia implicita di
+  COMMERCIABILITÀ o IDONEITÀ PER UNO SCOPO PARTICOLARE. Vedi la
+  GNU Affero General Public License per ulteriori dettagli.
+  ---
+  Dovresti aver ricevuto una copia della GNU Affero General Public License
+  insieme a questo programma. In caso contrario, vedi <https://www.gnu.org/licenses/>.
+*@
+
+@using GestioneURP.Components.State
+@using GestioneURP.Infrastructure.Gso
+@using Microsoft.AspNetCore.Components.Authorization
+@inherits LayoutComponentBase
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject OperatoreState OperatoreCorrente
+
+<header class="header">
+    <div class="header-brand">
+        <a href="https://www.arpal.liguria.it/" class="header-link">
+            <img src="logo_arpal_bianco.png" alt="ARPAL" class="header-logo" />
+        </a>
+
+        <div class="header-text">
+            <span class="header-title">URP Gestione segnalazioni</span>
+
+            <span class="header-operator @(OperatoreCorrente.SeOverride ? "header-operator-override" : "")">
+                @if (OperatoreCorrente.SeOverride)
+                {
+                    <span class="header-operator-badge" title="Operatore in override" aria-label="Operatore in override">
+                        ⚠
+                    </span>
+                }
+
+                @(string.IsNullOrWhiteSpace(OperatoreCorrente.UserName) ? "Nessun operatore" : OperatoreCorrente.UserName)
+            </span>
+        </div>
+    </div>
+</header>
+
+<div class="content">
+    @if (OperatoreCorrente.SeCaricato)
+    {
+        @Body
+    }
+    else
+    {
+        <FluentStack Orientation="Orientation.Vertical"
+                     HorizontalAlignment="HorizontalAlignment.Center"
+                     Style="padding: 2rem 1rem; min-height: 60vh;">
+            <span>Caricamento operatore in corso...</span>
+        </FluentStack>
+    }
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    <FluentCard Class="blazor-error-card">
+        <FluentStack Orientation="Orientation.Vertical" Class="blazor-error-content">
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.End">
+                <FluentButton Appearance="Appearance.Lightweight" Class="dismiss" Title="Chiudi">
+                    ✕
+                </FluentButton>
+            </FluentStack>
+
+            <FluentMessageBar Intent="MessageIntent.Error">
+                Si è verificato un errore imprevisto.
+            </FluentMessageBar>
+
+            <p>
+                L'operazione potrebbe non essere stata completata. Provare a ricaricare la pagina. Se il problema persiste, contattare l'assistenza tecnica.
+            </p>
+
+            <FluentStack Orientation="Orientation.Horizontal" Class="blazor-error-actions">
+                <a class="reload" href=".">Ricarica</a>
+            </FluentStack>
+        </FluentStack>
+    </FluentCard>
+</div>
+
+@code {
+    [Inject] private IConfiguration Configuration { get; set; } = default!;
+    [Inject] private HttpClient HttpClient { get; set; } = default!;
+    [Inject] private ILogger<GestionePratica> Logger { get; set; } = default!;
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!OperatoreCorrente.SeCaricato)
+        {
+            string? userName;
+            bool seOverride = false;
+
+            var usernameOverridePath = Path.Combine(AppContext.BaseDirectory, "UsernameOverride");
+            if (File.Exists(usernameOverridePath))
+            {
+                userName = File.ReadAllText(usernameOverridePath).Trim();
+                seOverride = true;
+            }
+            else
+            {
+                var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                userName = state.User.Identity?.Name;
+                if (!string.IsNullOrEmpty(userName))
+                {
+                    // Estrazione del nome utente senza il dominio (es. "DOMINIO\utente" -> "utente")
+                    if (userName.Contains("\\"))
+                    {
+                        var parts = userName.Split('\\');
+                        if (parts.Length > 1)
+                        {
+                            userName = parts[1];
+                        }
+                    }
+                }
+            }
+
+            if (!string.IsNullOrEmpty(userName))
+            {
+                // Verifica se l'utente è un operatore valido in Gso
+                var identificativoApplicazione = Configuration["IdentificativoApplicazione"];
+                var gsoClient = new GsoWsClient.GsoWsClient(HttpClient, Configuration["GsoWsBaseUrl"]!, Logger);
+                var logon = await gsoClient.LogonAsync(userName, null, identificativoApplicazione!, trusted: true);
+
+                if (logon.Error.HasValue)
+                {
+                    Logger.LogWarning("L'utente {UserName} non è un operatore valido in Gso: {Error}", userName, logon.Error.Value);
+
+                    var messaggioErrore = logon.Error.Value switch
+                    {
+                        GsoWsClient.GsoLogonError.UserNotFound => "L'utente non è autorizzato all'accesso all'applicazione.",
+                        GsoWsClient.GsoLogonError.ApplicationNotFound => "L'applicazione non è configurata correttamente per l'accesso.",
+                        _ => "Accesso non consentito all'applicazione."
+                    };
+
+                    OperatoreCorrente.Set(string.Empty, null, null, seOverride);
+                    Navigation.NavigateTo($"/errore-logon?testo={Uri.EscapeDataString(messaggioErrore)}");
+                    return;
+                }
+
+                // Carica i profili dell'utente
+                var profili = await GsoWsClientAdapter.ProfiliOperatoreAsync(logon.UserId!.Value, identificativoApplicazione!, Configuration["GsoWsBaseUrl"]!, HttpClient, Logger);
+
+                // Se non ci sono profili, l'utente non è autorizzato
+                if (profili == null || profili.Count == 0)
+                {
+                    Logger.LogWarning("L'utente {UserName} non ha profili autorizzati in Gso.", userName);
+                    OperatoreCorrente.Set(string.Empty, null, null, seOverride);
+                    Navigation.NavigateTo("/errore-logon?testo=L'utente non ha profili autorizzati in Gso.");
+                    return;
+                }
+
+                OperatoreCorrente.Set(userName, logon.UserId, profili, seOverride);
+
+                Logger.LogInformation("L'utente {UserName} è stato autenticato con successo. UserId: {UserId} Profili: {Profili}", 
+                userName, logon.UserId, string.Join(", ", OperatoreCorrente.ElencoNomiProfili));                
+            }
+            else
+            {
+                Logger.LogWarning("Nessun nome utente trovato per l'autenticazione.");
+                OperatoreCorrente.Set(string.Empty, null, null, seOverride);
+                Navigation.NavigateTo("/errore-logon?testo=Nessun nome utente trovato per l'autenticazione.");
+            }
+        }
+    }
+}

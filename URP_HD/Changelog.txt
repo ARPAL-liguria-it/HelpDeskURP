@@ -1,0 +1,15 @@
+##[1.2.4] 2026-10-27
+### Added
+    - Salvataggio chiavi di protezioni su filesystem in cartella temporanea
+
+##[1.2.3] 2026-10-22
+### Changed
+    - In caso di errore durante l'invio email, salva una nota nel testo della richiesta
+
+##[1.2.2] 2026-10-21
+### Changed
+    - In caso di errore durante l'invio, rimanda a pagina errore anziché mostrare messaggio di errore in pagina riepilogo.
+
+
+The format is based on [Keep a Changelog]
+https://keepachangelog.com

@@ -1,0 +1,54 @@
+﻿@*
+  Nome del progetto: HelpDesk URP
+  Copyright (C) 2026 Agenzia regionale per la protezione dell'ambiente ligure
+  ---
+  Questo programma è software libero: puoi ridistribuirlo e/o modificarlo
+  secondo i termini della GNU Affero General Public License pubblicata dalla
+  Free Software Foundation, sia la versione 3 della licenza, sia (a tua scelta)
+  qualsiasi versione successiva.
+  ---
+  Questo programma è distribuito nella speranza che possa essere utile,
+  ma SENZA ALCUNA GARANZIA; senza nemmeno la garanzia implicita di
+  COMMERCIABILITÀ o IDONEITÀ PER UNO SCOPO PARTICOLARE. Vedi la
+  GNU Affero General Public License per ulteriori dettagli.
+  ---
+  Dovresti aver ricevuto una copia della GNU Affero General Public License
+  insieme a questo programma. In caso contrario, vedi <https://www.gnu.org/licenses/>.
+*@
+
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <ResourcePreloader />
+    <link rel="stylesheet" href="@Assets["app.css"]" />
+    <link rel="stylesheet" href="@Assets["GestioneURP.styles.css"]" />
+    <ImportMap />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <HeadOutlet @rendermode="@(new InteractiveServerRenderMode(prerender: false))" />
+</head>
+
+<body>
+    <ErrorBoundary>
+        <ChildContent>
+            <Routes @rendermode="@(new InteractiveServerRenderMode(prerender: false))" />
+        </ChildContent>
+        <ErrorContent>
+            <FluentStack Orientation="Orientation.Vertical"
+                         HorizontalAlignment="HorizontalAlignment.Center"
+                         Style="padding: 2rem 1rem; gap: 1rem; min-height: 60vh;">
+                <h3>Si è verificato un errore non gestito.</h3>
+                <p>Ricarica la pagina o torna alla Home.</p>
+                <FluentButton Appearance="Appearance.Accent" Href="/">Torna alla Home</FluentButton>
+            </FluentStack>
+        </ErrorContent>
+    </ErrorBoundary>
+    <ReconnectModal />
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+</body>
+
+</html>
+

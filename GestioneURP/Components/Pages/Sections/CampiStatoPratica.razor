@@ -1,0 +1,148 @@
+@*
+  Nome del progetto: HelpDesk URP
+  Copyright (C) 2026 Agenzia regionale per la protezione dell'ambiente ligure
+  ---
+  Questo programma è software libero: puoi ridistribuirlo e/o modificarlo
+  secondo i termini della GNU Affero General Public License pubblicata dalla
+  Free Software Foundation, sia la versione 3 della licenza, sia (a tua scelta)
+  qualsiasi versione successiva.
+  ---
+  Questo programma è distribuito nella speranza che possa essere utile,
+  ma SENZA ALCUNA GARANZIA; senza nemmeno la garanzia implicita di
+  COMMERCIABILITÀ o IDONEITÀ PER UNO SCOPO PARTICOLARE. Vedi la
+  GNU Affero General Public License per ulteriori dettagli.
+  ---
+  Dovresti aver ricevuto una copia della GNU Affero General Public License
+  insieme a questo programma. In caso contrario, vedi <https://www.gnu.org/licenses/>.
+*@
+
+@using GestioneURP.Infrastructure.Gso
+
+@* In sola lettura le coppie etichetta/valore sono preparate nel code-behind,
+   includendo la formattazione delle date e dei valori mancanti. *@
+@if (SolaLettura)
+{
+    <dl class="dati-stato">
+        @foreach (var campo in GetValori())
+        {
+            <dt>@campo.Etichetta</dt>
+            <dd>@campo.Valore</dd>
+        }
+    </dl>
+}
+else
+{
+    @* In modifica vengono mostrati solo i campi dello stato richiesto.
+       Il binding aggiorna il DTO condiviso; i callback notificano la modifica al padre.
+       Le FluentValidationMessage mostrano gli errori dell'EditForm che ospita il componente. *@
+    <div class="campi-stato">
+        <FluentValidationMessage For="@(() => Dati.StatoPratica)" />
+        @switch (Stato)
+        {
+            case "Presa in carico da operatore":
+                @* Le date notificano dopo il binding; le aree di testo usano Immediate
+                   per aggiornare il valore durante la digitazione, non solo all'uscita dal campo. *@
+                <div>
+                    <FluentDatePicker Label="Data presa in carico" @bind-Value="Dati.DataPresaInCarico" @bind-Value:after="ModificatoAsync" Style="width: 12rem; max-width: 100%;" />
+                    <FluentValidationMessage For="@(() => Dati.DataPresaInCarico)" />
+                </div>
+                @* La selezione passa l'ID al code-behind, che aggiorna anche il nome dell'operatore. *@
+                <div>
+                    <FluentSelect Label="Operatore presa in carico" TOption="string" Value="@(Dati.IdOperatorePresaInCarico?.ToString())" ValueChanged="OperatorePresaInCaricoModificatoAsync">
+                        <FluentOption Value="">-- Seleziona --</FluentOption>
+                        @foreach (var operatore in Operatori)
+                        {
+                            <FluentOption Value="@(Convert.ToInt64(operatore.IdUtente).ToString())">@operatore.CognomeNome</FluentOption>
+                        }
+                    </FluentSelect>
+                    <FluentValidationMessage For="@(() => Dati.OperatorePresaInCarico)" />
+                </div>
+                <div>
+                    <FluentTextArea Label="Annotazioni presa in carico" @bind-Value="Dati.AnnotazioniPresaInCarico" @bind-Value:after="ModificatoAsync" Immediate="true" Rows="3" MaxLength="4000" />
+                    <FluentValidationMessage For="@(() => Dati.AnnotazioniPresaInCarico)" />
+                </div>
+                break;
+            case "Passaggio ad altro operatore":
+                <div>
+                    <FluentDatePicker Label="Data assegnazione ad altro operatore" @bind-Value="Dati.DataAssegnazioneAltroOperatore" @bind-Value:after="ModificatoAsync" Style="width: 12rem; max-width: 100%;" />
+                    <FluentValidationMessage For="@(() => Dati.DataAssegnazioneAltroOperatore)" />
+                </div>
+                @* Qui il binding memorizza il nome; il callback successivo ricava l'ID dell'assegnatario. *@
+                <div>
+                    <FluentSelect Label="Operatore assegnatario" TOption="string" @bind-Value="Dati.OperatoreAssegnatario" @bind-Value:after="AssegnatarioModificatoAsync">
+                        <FluentOption Value="">-- Seleziona --</FluentOption>
+                        @foreach (var operatore in Operatori)
+                        {
+                            <FluentOption Value="@operatore.CognomeNome">@operatore.CognomeNome</FluentOption>
+                        }
+                    </FluentSelect>
+                    <FluentValidationMessage For="@(() => Dati.OperatoreAssegnatario)" />
+                </div>
+                <div>
+                    <FluentTextArea Label="Annotazioni assegnazione" @bind-Value="Dati.AnnotazioniAssegnazione" @bind-Value:after="ModificatoAsync" Immediate="true" Rows="3" MaxLength="4000" />
+                    <FluentValidationMessage For="@(() => Dati.AnnotazioniAssegnazione)" />
+                </div>
+                break;
+            case "Richiesto approfondimento ad altra struttura":
+                <div>
+                    <FluentDatePicker Label="Data inoltro ad altra struttura" @bind-Value="Dati.DataInoltroAltraStruttura" @bind-Value:after="ModificatoAsync" Style="width: 12rem; max-width: 100%;" />
+                    <FluentValidationMessage For="@(() => Dati.DataInoltroAltraStruttura)" />
+                </div>
+                @* La ricerca filtra le strutture fornite dal padre. La selezione singola
+                   aggiorna nel DTO sia il codice sia la descrizione della struttura. *@
+                <div>
+                    <FluentAutocomplete Label="Struttura destinataria"
+                                        TOption="Struttura"
+                                        OnOptionsSearch="OnStruttureSearch"
+                                        OptionText="@(s => s.DescrizioneStruttura ?? string.Empty)"
+                                        Height="16rem"
+                                        MaximumOptionsSearch="@Math.Max(1, Strutture.Count)"
+                                        Multiple="false"
+                                        SelectedOption="@_strutturaSelezionata"
+                                        SelectedOptionChanged="StrutturaModificataAsync"
+                                        Placeholder="Digita per cercare..."
+                                        Style="width: 100%;" />
+                    <FluentValidationMessage For="@(() => Dati.StrutturaDestinataria)" />
+                </div>
+                <div>
+                    <FluentTextArea Label="Annotazioni inoltro" @bind-Value="Dati.AnnotazioniInoltro" @bind-Value:after="ModificatoAsync" Immediate="true" Rows="3" MaxLength="4000" />
+                    <FluentValidationMessage For="@(() => Dati.AnnotazioniInoltro)" />
+                </div>
+                break;
+            case "Ricevuta risposta da struttura":
+                <div>
+                    <FluentDatePicker Label="Data risposta della struttura" @bind-Value="Dati.DataRispostaStruttura" @bind-Value:after="ModificatoAsync" Style="width: 12rem; max-width: 100%;" />
+                    <FluentValidationMessage For="@(() => Dati.DataRispostaStruttura)" />
+                </div>
+                <div>
+                    <FluentTextArea Label="Risposta da struttura" @bind-Value="Dati.RispostaDaStruttura" @bind-Value:after="ModificatoAsync" Immediate="true" Rows="5" MaxLength="4000" />
+                    <FluentValidationMessage For="@(() => Dati.RispostaDaStruttura)" />
+                </div>
+                break;
+            case "Risposta per il cittadino":
+                <div>
+                    <FluentDatePicker Label="Data risposta" @bind-Value="Dati.DataRisposta" @bind-Value:after="ModificatoAsync" Style="width: 12rem; max-width: 100%;" />
+                    <FluentValidationMessage For="@(() => Dati.DataRisposta)" />
+                </div>
+                <div>
+                    <FluentTextArea Label="Testo risposta" @bind-Value="Dati.TestoRisposta" @bind-Value:after="ModificatoAsync" Immediate="true" Rows="5" MaxLength="2000" />
+                    <FluentValidationMessage For="@(() => Dati.TestoRisposta)" />
+                </div>
+                <div>
+                    <FluentTextArea Label="Annotazioni Ufficio URP (non inviate al cittadino)" @bind-Value="Dati.AnnotazioniRisposta" @bind-Value:after="ModificatoAsync" Immediate="true" Rows="3" MaxLength="4000" />
+                    <FluentValidationMessage For="@(() => Dati.AnnotazioniRisposta)" />
+                </div>
+                break;
+            case "Chiusa":
+                <div>
+                    <FluentDatePicker Label="Data chiusura" @bind-Value="Dati.DataChiusura" @bind-Value:after="ModificatoAsync" Style="width: 12rem; max-width: 100%;" />
+                    <FluentValidationMessage For="@(() => Dati.DataChiusura)" />
+                </div>
+                <div>
+                    <FluentTextArea Label="Annotazioni chiusura" @bind-Value="Dati.AnnotazioniChiusura" @bind-Value:after="ModificatoAsync" Immediate="true" Rows="3" MaxLength="4000" />
+                    <FluentValidationMessage For="@(() => Dati.AnnotazioniChiusura)" />
+                </div>
+                break;
+        }
+    </div>
+}

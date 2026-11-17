@@ -1,0 +1,79 @@
+﻿@*
+  Nome del progetto: HelpDesk URP
+  Copyright (C) 2026 Agenzia regionale per la protezione dell'ambiente ligure
+  ---
+  Questo programma è software libero: puoi ridistribuirlo e/o modificarlo
+  secondo i termini della GNU Affero General Public License pubblicata dalla
+  Free Software Foundation, sia la versione 3 della licenza, sia (a tua scelta)
+  qualsiasi versione successiva.
+  ---
+  Questo programma è distribuito nella speranza che possa essere utile,
+  ma SENZA ALCUNA GARANZIA; senza nemmeno la garanzia implicita di
+  COMMERCIABILITÀ o IDONEITÀ PER UNO SCOPO PARTICOLARE. Vedi la
+  GNU Affero General Public License per ulteriori dettagli.
+  ---
+  Dovresti aver ricevuto una copia della GNU Affero General Public License
+  insieme a questo programma. In caso contrario, vedi <https://www.gnu.org/licenses/>.
+*@
+
+@page "/reclamowizard"
+@inject URP_HDContext urpDbContext
+@inject NavigationManager NavigationManager
+
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+@inject PuliziaFileTemporaneiService PuliziaFileTemporaneiService
+
+@rendermode InteractiveServer
+
+<PageTitle>Nuovo reclamo</PageTitle>
+
+<FluentLabel style="text-align: right; width: 100%; padding: 1em;">
+    @operatore?.Nome @operatore?.Cognome
+</FluentLabel>
+
+@if (
+    (State.Reclamo.ID_TIPO_RICHIESTA != 3)
+    ||
+    String.IsNullOrEmpty(HttpContextAccessor.HttpContext?.Session.GetString("Operatore"))
+)
+{
+    // L'utente non è autenticato, manda alla home page
+    NavigationManager.NavigateTo(NavigationManager.BaseUri);
+}
+
+<div style="
+    width:100%;
+    max-width:800px;
+    margin:0 auto;
+    padding:20px;
+    box-sizing:border-box;">
+    <h1 class="titolo_h1">@descrizioneTipoRichiestaSelezionata</h1>
+
+    @if (State.Step == 1)
+    {
+        <ReclamoInserimentoDati State="State"
+                                OnAvanti="StateHasChanged"
+                                OnIndietro="StateHasChanged" />
+    }
+    else if (State.Step == 2)
+    {
+        <ReclamoAllegati State="State"
+                         OnAvanti="StateHasChanged"
+                         OnIndietro="StateHasChanged" />
+    }
+    else if (State.Step == 3)
+    {
+        <ReclamoRiepilogo State="State"
+                          OnAvanti="StateHasChanged"
+                          OnIndietro="StateHasChanged" />
+    }
+    else if (State.Step == 4)
+    {
+        <ReclamoConferma State="State" />
+    }
+
+</div>
+@code {
+
+}

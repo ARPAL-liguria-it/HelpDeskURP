@@ -1,0 +1,111 @@
+﻿@*
+  Nome del progetto: HelpDesk URP
+  Copyright (C) 2026 Agenzia regionale per la protezione dell'ambiente ligure
+  ---
+  Questo programma è software libero: puoi ridistribuirlo e/o modificarlo
+  secondo i termini della GNU Affero General Public License pubblicata dalla
+  Free Software Foundation, sia la versione 3 della licenza, sia (a tua scelta)
+  qualsiasi versione successiva.
+  ---
+  Questo programma è distribuito nella speranza che possa essere utile,
+  ma SENZA ALCUNA GARANZIA; senza nemmeno la garanzia implicita di
+  COMMERCIABILITÀ o IDONEITÀ PER UNO SCOPO PARTICOLARE. Vedi la
+  GNU Affero General Public License per ulteriori dettagli.
+  ---
+  Dovresti aver ricevuto una copia della GNU Affero General Public License
+  insieme a questo programma. In caso contrario, vedi <https://www.gnu.org/licenses/>.
+*@
+
+@page "/"
+@rendermode InteractiveServer
+
+<PageTitle>Lista segnalazioni</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" Style="padding: 1rem; gap: 1rem;">
+
+    <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Bottom" Wrap="true" Style="gap: 0.75rem;">
+
+        <FluentTextField @bind-Value="_filtroInput.Testo"
+                         Placeholder="Ricerca per cognome, email o testo segnalazione"
+                         Style="min-width: 320px;" />
+
+        <FluentSelect TOption="string" @bind-Value="_filtroInput.IdTipoTematicaStr" Label="Area tematica">
+            <FluentOption TOption="string" Value="">-- Tutte --</FluentOption>
+            @foreach (var t in _tipiTematica)
+            {
+                <FluentOption TOption="string" Value="@t.IdTipoTematica.ToString()">@t.DescrizioneTipoTematica</FluentOption>
+            }
+        </FluentSelect>
+
+        <FluentSelect TOption="string" @bind-Value="_filtroInput.StatoPratica" Label="Stato">
+            <FluentOption TOption="string" Value="">-- Tutti --</FluentOption>
+            @foreach (var s in _statiPratica)
+            {
+                <FluentOption TOption="string" Value="@s">@s</FluentOption>
+            }
+        </FluentSelect>
+
+        <FluentButton OnClick="ApplicaFiltriAsync"
+                      Appearance="Appearance.Accent"
+                      IconStart="@(new Icons.Regular.Size20.Filter())">
+            Applica filtri
+        </FluentButton>
+
+        <FluentButton OnClick="RimuoviFiltriAsync"
+                      Appearance="Appearance.Outline"
+                      IconStart="@(new Icons.Regular.Size20.Dismiss())">
+            Rimuovi filtri
+        </FluentButton>
+
+        <FluentButton OnClick="ApriNuovaSegnalazione"
+                      Appearance="Appearance.Accent">
+            Nuova richiesta/reclamo
+        </FluentButton>
+
+        @if (OperatoreCorrente.SeGenerazioneUrlQuestionari())
+        {
+            <FluentButton OnClick="ApriGenerazioneUrlQuestionari"
+                          Appearance="Appearance.Accent"
+                          IconStart="@(new Icons.Regular.Size20.Link())">
+                Genera URL questionari
+            </FluentButton>
+        }
+
+    </FluentStack>
+
+    <FluentDataGrid @ref="_griglia"
+                    Class="home-segnalazioni-grid"
+                    ItemsProvider="_itemsProvider"
+                    Pagination="_paginazione"
+                    TGridItem="SegnalazioneRigaDto"
+                    ShowHover="@SelectFromEntireRow"
+                    OnRowClick="OnRowClick">
+        <ChildContent>
+            <PropertyColumn Property="@(x => x.Codice)" Title="Codice segnalazione" />
+            <PropertyColumn Property="@(x => x.DataInserimento)" Title="Data inserimento" Format="dd/MM/yyyy" />
+            <PropertyColumn Property="@(x => x.CognomeNomeAutore)" Title="Cognome e nome" />
+            <PropertyColumn Property="@(x => x.EmailAutore)" Title="Email" />
+            <PropertyColumn Property="@(x => x.Tipologia)" Title="Tipologia" />
+            <PropertyColumn Property="@(x => x.AreaTematica)" Title="Area tematica" />
+            <PropertyColumn Property="@(x => x.StatoPratica)" Title="Stato" />
+            <PropertyColumn Property="@(x => x.OperatorePresaInCarico)" Title="Operatore" />
+        </ChildContent>
+        <EmptyContent>
+            <p>Nessuna segnalazione trovata con i filtri applicati</p>
+        </EmptyContent>
+    </FluentDataGrid>
+
+    <FluentPaginator State="_paginazione">
+        <SummaryTemplate>
+            <strong>@(_paginazione.TotalItemCount ?? 0)</strong> elementi
+        </SummaryTemplate>
+        <PaginationTextTemplate>
+            Pagina @(_paginazione.CurrentPageIndex + 1) di @((_paginazione.LastPageIndex ?? 0) + 1)
+        </PaginationTextTemplate>
+    </FluentPaginator>
+
+    <div style="width: 100%; display: flex; justify-content: flex-end;">
+        <FluentLabel Style="font-size: 0.75rem;">Versione: @_versioneApplicazione</FluentLabel>
+    </div>
+
+</FluentStack>

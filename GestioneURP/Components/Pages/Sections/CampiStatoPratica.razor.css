@@ -1,0 +1,55 @@
+/*
+ * Nome del progetto: HelpDesk URP
+ * Copyright (C) 2026 Agenzia regionale per la protezione dell'ambiente ligure
+ * ---
+ * Questo programma è software libero: puoi ridistribuirlo e/o modificarlo
+ * secondo i termini della GNU Affero General Public License pubblicata dalla
+ * Free Software Foundation, sia la versione 3 della licenza, sia (a tua scelta)
+ * qualsiasi versione successiva.
+ * ---
+ * Questo programma è distribuito nella speranza che possa essere utile,
+ * ma SENZA ALCUNA GARANZIA; senza nemmeno la garanzia implicita di
+ * COMMERCIABILITÀ o IDONEITÀ PER UNO SCOPO PARTICOLARE. Vedi la
+ * GNU Affero General Public License per ulteriori dettagli.
+ * ---
+ * Dovresti aver ricevuto una copia della GNU Affero General Public License
+ * insieme a questo programma. In caso contrario, vedi <https://www.gnu.org/licenses/>.
+*/
+
+.campi-stato {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+}
+
+.campi-stato ::deep fluent-text-field,
+.campi-stato ::deep fluent-text-area,
+.campi-stato ::deep fluent-select {
+    width: 100%;
+}
+
+.campi-stato ::deep fluent-select::part(listbox) {
+    max-height: 16rem;
+    overflow-y: auto;
+}
+
+.campi-stato ::deep .fluent-datepicker {
+    width: 12rem;
+    max-width: 100%;
+}
+
+.dati-stato {
+    margin: 0;
+}
+
+.dati-stato dt {
+    font-weight: 600;
+    margin-top: 0.5rem;
+}
+
+.dati-stato dd {
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}

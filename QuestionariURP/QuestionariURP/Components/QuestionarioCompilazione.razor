@@ -1,0 +1,264 @@
+@*
+  Nome del progetto: HelpDesk URP
+  Copyright (C) 2026 Agenzia regionale per la protezione dell'ambiente ligure
+  ---
+  Questo programma è software libero: puoi ridistribuirlo e/o modificarlo
+  secondo i termini della GNU Affero General Public License pubblicata dalla
+  Free Software Foundation, sia la versione 3 della licenza, sia (a tua scelta)
+  qualsiasi versione successiva.
+  ---
+  Questo programma è distribuito nella speranza che possa essere utile,
+  ma SENZA ALCUNA GARANZIA; senza nemmeno la garanzia implicita di
+  COMMERCIABILITÀ o IDONEITÀ PER UNO SCOPO PARTICOLARE. Vedi la
+  GNU Affero General Public License per ulteriori dettagli.
+  ---
+  Dovresti aver ricevuto una copia della GNU Affero General Public License
+  insieme a questo programma. In caso contrario, vedi <https://www.gnu.org/licenses/>.
+*@
+
+@using QuestionariURP.Application.Services
+@using QuestionariURP.Application.State
+@using QuestionariURP.Domain.Entities
+@inject QuestionarioCompilazioneState CompilazioneState
+@inject InvioRisposteService InvioRisposteService
+@inject IConfiguration Configuration
+
+<div class="compilazione-container">
+    @if (_abbandonata)
+    {
+        <section class="abbandono-card">
+            <h1>Compilazione abbandonata</h1>
+            <p>La compilazione è stata interrotta e i dati inseriti non sono stati salvati.</p>
+        </section>
+    }
+    else if (!CompilazioneState.Inizializzato)
+    {
+        <p>Caricamento...</p>
+    }
+    else if (_invioCompletato)
+    {
+        <section class="conferma-invio-card">
+            <h1>Invio completato</h1>
+            <p>Le tue risposte sono state inviate correttamente.</p>
+        </section>
+    }
+    else if (CompilazioneState.InRiepilogo)
+    {
+        <section class="riepilogo-card">
+            <h1>Riepilogo risposte</h1>
+
+            <div class="riepilogo-lista">
+                @foreach (var domanda in CompilazioneState.Domande.OrderBy(d => d.Domanda.Ordine))
+                {
+                    <div class="riepilogo-item">
+                        <h2>@domanda.Domanda.Ordine. @domanda.Domanda.Testo</h2>
+                        <p>@OttieniTestoRiepilogo(domanda)</p>
+                    </div>
+                }
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(_erroreInvio))
+            {
+                <div class="error-container">
+                    <h2>Invio non riuscito</h2>
+                    <p>@_erroreInvio</p>
+                </div>
+            }
+
+            <!-- RIEPILOGO: azioni -->
+            <div class="azioni-riepilogo">
+                <FluentButton Appearance="Appearance.Stealth" @onclick="RichiediConfermaAbbandono">
+                    Abbandona la compilazione
+                </FluentButton>
+
+                <FluentButton Appearance="Appearance.Neutral" @onclick="ModificaRisposte">
+                    Modifica le risposte
+                </FluentButton>
+
+                <FluentButton Appearance="Appearance.Accent" @onclick="InviaRisposte" Disabled="@_invioInCorso">
+                    @(_invioInCorso ? "Invio in corso..." : "Invia le risposte")
+                </FluentButton>
+            </div>
+        </section>
+    }
+    else
+    {
+        <h1>@TipoQuestionario.Nome</h1>
+
+        @if (!string.IsNullOrEmpty(TipoQuestionario.Descrizione))
+        {
+            <p class="descrizione">@TipoQuestionario.Descrizione</p>
+        }
+
+        <div class="questionario-form">
+            @foreach (var domanda in CompilazioneState.Domande)
+            {
+                <section class="domanda-card" @key="domanda.Domanda.Id">
+                    <h2>@domanda.Domanda.Ordine. @domanda.Domanda.Testo</h2>
+
+                    @if (domanda.Domanda is DomandaChiusa domandaChiusa)
+                    {
+                        <div class="opzioni-risposta">
+                            @foreach (var opzione in domandaChiusa.OpzioniRisposta)
+                            {
+                                <label class="opzione-risposta">
+                                    <input type="radio"
+                                           name="domanda_@domanda.Domanda.Id"
+                                           checked="@(domanda.OpzioneRispostaId == opzione.Id)"
+                                           @onchange="() => CompilazioneState.SelezionaOpzione(domanda.Domanda.Id, opzione.Id)" />
+                                    <span>@opzione.Testo</span>
+                                </label>
+                            }
+                        </div>
+                    }
+                    else if (domanda.Domanda is DomandaAperta domandaAperta)
+                    {
+                        <div class="risposta-aperta">
+                            <textarea class="testo-risposta"
+                                      rows="4"
+                                      maxlength="@QuestionarioCompilazioneState.LunghezzaMassimaRispostaAperta"
+                                      value="@domanda.TestoRisposta"
+                                      @oninput="@(e => CompilazioneState.AggiornaTestoRisposta(domanda.Domanda.Id, e.Value?.ToString()))"></textarea>
+                        </div>
+
+                        @if (domandaAperta.Obbligatoria)
+                        {
+                            <p class="nota-campo-obbligatorio">Campo obbligatorio</p>
+                        }
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(domanda.Errore))
+                    {
+                        <p class="errore-domanda">@domanda.Errore</p>
+                    }
+                </section>
+            }
+        </div>
+
+        <!-- COMPILAZIONE: azioni -->
+        <div class="azioni-compilazione">
+            <FluentButton Appearance="Appearance.Stealth" @onclick="RichiediConfermaAbbandono">
+                Abbandona la compilazione
+            </FluentButton>
+
+            <FluentButton Appearance="Appearance.Accent" @onclick="ApriRiepilogo">
+                Continua
+            </FluentButton>
+        </div>
+    }
+
+    @if (_confermaAbbandonoVisibile)
+    {
+        <div class="conferma-overlay">
+            <section class="conferma-card">
+                <h2>Abbandonare la compilazione?</h2>
+                <p>I dati inseriti finora verranno scartati e non saranno salvati.</p>
+                <!-- MODALE CONFERMA ABBANDONO: azioni -->
+                <div class="azioni-conferma">
+                    <FluentButton Appearance="Appearance.Neutral" @onclick="AnnullaAbbandono">
+                        No
+                    </FluentButton>
+
+                    <FluentButton Appearance="Appearance.Accent" @onclick="ConfermaAbbandono">
+                        Sì
+                    </FluentButton>
+                </div>
+            </section>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public required TipoQuestionario TipoQuestionario { get; set; }
+
+    [Parameter]
+    public required string? Sorgente { get; set; }
+
+    [Parameter]
+    public Token? Token { get; set; }
+
+    private string? _chiaveInizializzazione;
+    private bool _invioInCorso;
+    private bool _invioCompletato;
+    private bool _abbandonata;
+    private bool _confermaAbbandonoVisibile;
+    private string? _erroreInvio;
+
+    protected override void OnParametersSet()
+    {
+        var chiave = $"{TipoQuestionario.Codice}|{Sorgente}|{Token?.Valore}";
+        if (_chiaveInizializzazione == chiave)
+        {
+            return;
+        }
+
+        _chiaveInizializzazione = chiave;
+        _invioCompletato = false;
+        _abbandonata = false;
+        _confermaAbbandonoVisibile = false;
+        _erroreInvio = null;
+        CompilazioneState.Inizializza(TipoQuestionario, Sorgente ?? string.Empty, Token);
+    }
+
+    private void ApriRiepilogo()
+    {
+        _erroreInvio = null;
+        CompilazioneState.ValidaDomandeEApriRiepilogo();
+    }
+
+    private void ModificaRisposte()
+    {
+        _erroreInvio = null;
+        CompilazioneState.TornaInModifica();
+    }
+
+    private void RichiediConfermaAbbandono()
+    {
+        _confermaAbbandonoVisibile = true;
+    }
+
+    private void AnnullaAbbandono()
+    {
+        _confermaAbbandonoVisibile = false;
+    }
+
+    private void ConfermaAbbandono()
+    {
+        _confermaAbbandonoVisibile = false;
+        _erroreInvio = null;
+        _abbandonata = true;
+        CompilazioneState.AbbandonaCompilazione();
+    }
+
+    private async Task InviaRisposte()
+    {
+        _erroreInvio = null;
+        _invioInCorso = true;
+
+        var esito = await InvioRisposteService.InviaAsync(CompilazioneState);
+
+        _invioInCorso = false;
+
+        if (esito.Successo)
+        {
+            _invioCompletato = true;
+            return;
+        }
+
+        _erroreInvio = esito.MessaggioErrore;
+    }
+
+    private static string OttieniTestoRiepilogo(DomandaCompilazioneState domanda)
+    {
+        if (domanda.Domanda is DomandaChiusa domandaChiusa)
+        {
+            var opzione = domandaChiusa.OpzioniRisposta.FirstOrDefault(o => o.Id == domanda.OpzioneRispostaId);
+            return opzione?.Testo ?? "Nessuna risposta selezionata";
+        }
+
+        return string.IsNullOrWhiteSpace(domanda.TestoRisposta)
+            ? "Nessuna risposta"
+            : domanda.TestoRisposta;
+    }
+}

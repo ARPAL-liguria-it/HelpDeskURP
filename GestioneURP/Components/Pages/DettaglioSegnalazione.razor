@@ -1,0 +1,147 @@
+@*
+  Nome del progetto: HelpDesk URP
+  Copyright (C) 2026 Agenzia regionale per la protezione dell'ambiente ligure
+  ---
+  Questo programma è software libero: puoi ridistribuirlo e/o modificarlo
+  secondo i termini della GNU Affero General Public License pubblicata dalla
+  Free Software Foundation, sia la versione 3 della licenza, sia (a tua scelta)
+  qualsiasi versione successiva.
+  ---
+  Questo programma è distribuito nella speranza che possa essere utile,
+  ma SENZA ALCUNA GARANZIA; senza nemmeno la garanzia implicita di
+  COMMERCIABILITÀ o IDONEITÀ PER UNO SCOPO PARTICOLARE. Vedi la
+  GNU Affero General Public License per ulteriori dettagli.
+  ---
+  Dovresti aver ricevuto una copia della GNU Affero General Public License
+  insieme a questo programma. In caso contrario, vedi <https://www.gnu.org/licenses/>.
+*@
+
+@page "/segnalazioni/dettaglio/{Id:long}"
+
+<PageTitle>Dettaglio segnalazione</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" Style="padding: 1rem; gap: 1rem;">
+    @if (_erroreBloccante)
+    {
+        <FluentMessageBar Intent="MessageIntent.Error">
+            <strong>Impossibile visualizzare il dettaglio.</strong><br />
+            Provare a riavviare l'applicazione e segnalare il problema all'amministratore.
+            @if (!string.IsNullOrWhiteSpace(_dettaglioErrore))
+            {
+                <br />
+                <span>@_dettaglioErrore</span>
+            }
+        </FluentMessageBar>
+
+        <FluentButton OnClick="TornaAllaLista">Torna alla lista</FluentButton>
+    }
+    else if (_dettaglio is null)
+    {
+        <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="gap: 0.5rem;">
+            <FluentProgressRing />
+            <span>Caricamento in corso...</span>
+        </FluentStack>
+    }
+    else
+    {
+        <div class="dettaglio-sezioni-grid">
+            <FluentCard class="dettaglio-sezione-card">
+                <FluentStack Orientation="Orientation.Vertical" Style="gap: 0.5rem;">
+                    <h3>Informazioni generali</h3>
+                    <div><strong>Codice segnalazione:</strong> @ValoreOrDash(_dettaglio.Codice)</div>
+                    <div><strong>Data inserimento:</strong> @FormatDataOra(_dettaglio.DataInserimento)</div>
+                    <div><strong>Tipologia:</strong> @ValoreOrDash(_dettaglio.Tipologia)</div>
+                    <div><strong>Sorgente:</strong> @ValoreOrDash(_dettaglio.Sorgente)</div>
+                </FluentStack>
+            </FluentCard>
+
+            <FluentCard class="dettaglio-sezione-card">
+                <FluentStack Orientation="Orientation.Vertical" Style="gap: 0.5rem;">
+                    <h3>Dati del cittadino</h3>
+                    <div><strong>E-mail:</strong> @ValoreOrDash(_dettaglio.Email)</div>
+                    <div><strong>Cognome:</strong> @ValoreOrDash(_dettaglio.Cognome)</div>
+                    <div><strong>Nome:</strong> @ValoreOrDash(_dettaglio.Nome)</div>
+                    <div><strong>PEC:</strong> @ValoreOrDash(_dettaglio.Pec)</div>
+                    <div><strong>Chi sono:</strong> @ValoreOrDash(_dettaglio.Categoria)</div>
+                    <div><strong>Telefono:</strong> @ValoreOrDash(_dettaglio.Telefono)</div>
+                    <div><strong>Ragione sociale:</strong> @ValoreOrDash(_dettaglio.RagioneSociale)</div>                    
+                </FluentStack>
+            </FluentCard>
+
+            @if (_dettaglio.MostraSezioneRichiesta)
+            {
+                <FluentCard class="dettaglio-sezione-card">
+                    <FluentStack Orientation="Orientation.Vertical" Style="gap: 0.5rem;">
+                        <h3>Richiesta</h3>
+                        <div><strong>Tematica:</strong> @ValoreOrDash(_dettaglio.Tematica)</div>
+                        <div><strong>Luogo:</strong> @ValoreOrDash(_dettaglio.Luogo)</div>
+                        <div><strong>Comune specifico:</strong> @ValoreOrDash(_dettaglio.ComuneSpecifico)</div>
+                        <div><strong>Indirizzo:</strong> @ValoreOrDash(_dettaglio.Indirizzo)</div>
+                        <div><strong>Richiesta:</strong> @ValoreOrDash(_dettaglio.Richiesta)</div>
+                        <div>
+                            <strong>Allegati:</strong>
+                            @if (GetAllegatiSegnalazione().Count == 0)
+                            {
+                                <span> Nessun file allegato</span>
+                            }
+                            else
+                            {
+                                <ul class="allegati-lista">
+                                    @foreach (var allegato in GetAllegatiSegnalazione())
+                                    {
+                                        <li class="allegato-item">
+                                            <span class="allegato-info">@allegato.NomeFile</span>
+                                            <FluentAnchor Href="@GetAllegatoDownloadUrl(allegato)"
+                                                          Download="@allegato.NomeFile"
+                                                          Appearance="Appearance.Outline"
+                                                          IconStart="@(new Icons.Regular.Size20.ArrowDownload())"
+                                                          Class="link-scarica">Scarica</FluentAnchor>
+                                        </li>
+                                    }
+                                </ul>
+                            }
+                        </div>
+                    </FluentStack>
+                </FluentCard>
+            }
+
+            @if (_dettaglio.MostraSezioneReclamo)
+            {
+                <FluentCard class="dettaglio-sezione-card">
+                    <FluentStack Orientation="Orientation.Vertical" Style="gap: 0.5rem;">
+                        <h3>Reclamo</h3>
+                        <div><strong>Testo:</strong> @ValoreOrDash(_dettaglio.Oggetto)</div>
+                        <div><strong>Struttura:</strong> @ValoreOrDash(_dettaglio.Struttura)</div>
+                        <div>
+                            <strong>Allegati:</strong>
+                            @if (GetAllegatiSegnalazione().Count == 0)
+                            {
+                                <span> Nessun file allegato</span>
+                            }
+                            else
+                            {
+                                <ul class="allegati-lista">
+                                    @foreach (var allegato in GetAllegatiSegnalazione())
+                                    {
+                                        <li class="allegato-item">
+                                            <span class="allegato-info">@allegato.NomeFile</span>
+                                            <FluentAnchor Href="@GetAllegatoDownloadUrl(allegato)" Download="@allegato.NomeFile" Class="link-scarica">Scarica</FluentAnchor>
+                                        </li>
+                                    }
+                                </ul>
+                            }
+                        </div>
+                    </FluentStack>
+                </FluentCard>
+            }
+        </div>
+
+        <div class="dettaglio-gestione-sezione">
+            <GestionePratica @ref="_gestionePratica" @key="(_dettaglio.TipoSegnalazione, _dettaglio.Id)"
+                             IdSegnalazione="@_dettaglio.Id"
+                             TipoSegnalazione="@_dettaglio.TipoSegnalazione"
+                             DataInserimentoSegnalazione="@_dettaglio.DataInserimento"
+                             OnSalvatoCallback="@OnGestionePraticaSalvata" />
+        </div>
+    }
+</FluentStack>

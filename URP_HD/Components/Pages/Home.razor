@@ -1,0 +1,81 @@
+﻿@*
+  Nome del progetto: HelpDesk URP
+  Copyright (C) 2026 Agenzia regionale per la protezione dell'ambiente ligure
+  ---
+  Questo programma è software libero: puoi ridistribuirlo e/o modificarlo
+  secondo i termini della GNU Affero General Public License pubblicata dalla
+  Free Software Foundation, sia la versione 3 della licenza, sia (a tua scelta)
+  qualsiasi versione successiva.
+  ---
+  Questo programma è distribuito nella speranza che possa essere utile,
+  ma SENZA ALCUNA GARANZIA; senza nemmeno la garanzia implicita di
+  COMMERCIABILITÀ o IDONEITÀ PER UNO SCOPO PARTICOLARE. Vedi la
+  GNU Affero General Public License per ulteriori dettagli.
+  ---
+  Dovresti aver ricevuto una copia della GNU Affero General Public License
+  insieme a questo programma. In caso contrario, vedi <https://www.gnu.org/licenses/>.
+*@
+
+@page "/"
+
+@inject URP_HDContext urpDbContext;
+@inject NavigationManager NavigationManager
+@inject IConfiguration Configuration
+
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+
+<PageTitle>Contatta ARPAL</PageTitle>
+
+<FluentLabel style="text-align: right; width: 100%; padding: 1em;">
+    @operatore?.Nome @operatore?.Cognome
+</FluentLabel>
+
+<FluentStack Horizontal="true"
+             Wrap="true"
+             HorizontalGap="20"
+             VerticalGap="20"
+             Style="justify-content:center;padding:20px;">
+
+    <div style="width:100%;">
+        <h1 class="titolo_h1">Contatta ARPAL</h1>
+    </div>
+
+    <FluentLabel style="padding: 1em;" hidden="@String.IsNullOrEmpty(errore)">
+        @errore
+    </FluentLabel>
+
+    @if (tipiRichiesta != null) // Mostra i tipi di richiesta disponibili
+    {
+        @foreach (var i in tipiRichiesta)
+        {
+            var href = $"richiestawizard?idtiporichiesta={i.ID_TIPO_RICHIESTA}";
+            if (i.ID_TIPO_RICHIESTA == 3)
+            {
+                href = $"reclamowizard?idtiporichiesta={i.ID_TIPO_RICHIESTA}";
+            }
+            if ((i.ID_TIPO_RICHIESTA != 3) || (i.ID_TIPO_RICHIESTA == 3 && !String.IsNullOrEmpty(HttpContextAccessor.HttpContext?.Session.GetString("Operatore"))))
+            {
+                <FluentCard Style="
+                    width:100%;
+                    max-width:380px;
+                    min-height:220px;
+                    display:flex;
+                    flex-direction:column;">
+                    <h3 class="titolo_h2">@i.DESCRIZIONE_TIPO_RICHIESTA</h3>
+                    <p>@i.DETTAGLIO</p>
+                    <div style="
+                        margin-top:auto;
+                        display:flex;
+                        justify-content:flex-end;">
+                        <FluentAnchor Appearance="Appearance.Accent"
+                                      Href="@href">
+                            Compila la richiesta
+                        </FluentAnchor>
+                    </div>
+                </FluentCard>
+            }
+        }
+    }
+
+</FluentStack>

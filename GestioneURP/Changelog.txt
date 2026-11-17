@@ -1,0 +1,59 @@
+##[1.2.5] 2026-11-03
+### Added
+	- Salvataggio chiavi di protezione su filesystem in cartella temporanea.
+
+##[1.2.4] 2026-10-24
+### Fixed
+	- Mancanza filtro cognome nella ricerca reclami.
+
+##[1.2.3] 2026-10-01
+### Fixed
+	- Aggiunto stato "Risposta per il cittadino" a filtro elenco segnalazioni.
+	- Allegati richiesta erroneamente inclusi in quelli selezionabili per l'invio email.
+
+##[1.2.2] UNRELEASED
+### Added
+	- Prefisso "Inviata email" nei dettagli del registro attività quando è inviata una email.
+
+##[1.2.1] UNRELEASED
+### Removed
+	- Link questionario non cliccabile in anteprima email.
+
+##[1.2.0] UNRELEASED
+### Added
+	- Invio email
+
+##[1.1.1] UNRELEASED
+### Changed
+	- Ricerca comune solo per parte iniziale del nome.
+	- Rinominato SeCancellazioneQuestionari in SeCancellazioneSegnalazioni
+### Fixed
+	- Eliminata possibilità di inserire testo nella casella di selezione della struttura.
+	- Limitazione a una selezion in ricerca comune.
+
+##[1.1.0] UNRELEASED
+### Added
+	- Changelog.
+	- Template email.
+	- Nell’elenco segnalazioni il filtro di ricerca per testo è applicato anche al cognome.
+	- Le date sono preselezionate alla data corrente.
+	- Nella presa in carico l’operatore preselezionato è l’utente connesso.
+	- E' aggiunta la cancellazione logica della segnalazione e la relativa funzione (da usare per il profilo amministratore).
+	- Nell’elenco segnalazioni è aggiunta la colonna operatore che ha preso in carico la segnalazione.
+### Changed
+	- Aggiornate specifiche.
+	- Flusso di gestione segnalazione con grafo degli stati.
+	- Il campo comune è compilabile con selezione da elenco comuni liguri.
+	- Etichetta “Categoria” sostituita con “Chi sono”.
+	- Il testo della segnalazione è esteso a 3000 caratteri.	
+	- Si accede ai dettagli della segnalazione facendo clic sull’intera riga.	
+	- La struttura a cui chiedere approfondimento è selezionata dall’elenco delle strutture prelevato da GSO.
+	- Il codice assegnato alla segnalazione è generato dalla tabella contatori.
+
+##[1.0.2] 2026-09-16
+### Added
+	- Prima versione rilasciata in test
+
+
+The format is based on [Keep a Changelog]
+https://keepachangelog.com

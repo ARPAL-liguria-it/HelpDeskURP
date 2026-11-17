@@ -1,0 +1,384 @@
+@*
+  Nome del progetto: HelpDesk URP
+  Copyright (C) 2026 Agenzia regionale per la protezione dell'ambiente ligure
+  ---
+  Questo programma è software libero: puoi ridistribuirlo e/o modificarlo
+  secondo i termini della GNU Affero General Public License pubblicata dalla
+  Free Software Foundation, sia la versione 3 della licenza, sia (a tua scelta)
+  qualsiasi versione successiva.
+  ---
+  Questo programma è distribuito nella speranza che possa essere utile,
+  ma SENZA ALCUNA GARANZIA; senza nemmeno la garanzia implicita di
+  COMMERCIABILITÀ o IDONEITÀ PER UNO SCOPO PARTICOLARE. Vedi la
+  GNU Affero General Public License per ulteriori dettagli.
+  ---
+  Dovresti aver ricevuto una copia della GNU Affero General Public License
+  insieme a questo programma. In caso contrario, vedi <https://www.gnu.org/licenses/>.
+*@
+
+@page "/segnalazioni/nuova"
+@rendermode InteractiveServer
+
+@* Pagina interattiva lato server: eventi e stato sono gestiti nel code-behind NuovaSegnalazione.razor.cs. *@
+<PageTitle>Nuova richiesta/reclamo</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" Class="nuova-segnalazione-container" Style="padding: 1rem; gap: 1rem; max-width: 1000px;">
+    <h2>Nuova richiesta/reclamo</h2>
+
+    @* Gli errori generali rimangono visibili sia nella compilazione sia nella conferma. *@
+    @if (!string.IsNullOrWhiteSpace(_erroreGenerale))
+    {
+        <FluentMessageBar Intent="MessageIntent.Error">@_erroreGenerale</FluentMessageBar>
+    }
+
+    @* Attende il caricamento delle opzioni prima di mostrare il passaggio corrente. *@
+    @if (_inCaricamento)
+    {
+        <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="gap: 0.5rem;">
+            <FluentProgressRing />
+            <span>Caricamento in corso...</span>
+        </FluentStack>
+    }
+    else if (_step == 1)
+    {
+        @* L'EditContext condiviso raccoglie gli errori degli attributi e delle regole condizionali del modello. *@
+        <FluentCard AreaRestricted="false">
+            <EditForm EditContext="_editContext">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <FluentStack Orientation="Orientation.Vertical" Style="gap: 0.75rem;">
+                    <h4>Passaggio 1 - Inserimento dati</h4>
+
+                    @* Il tipo selezionato determina quali sezioni vengono visualizzate e quali campi sono obbligatori. *@
+                    <div>
+                        <FluentLabel For="tipoSegnalazione">Tipo segnalazione</FluentLabel>
+                        <FluentSelect Id="tipoSegnalazione" @bind-Value="_model.TipoSegnalazione" @bind-Value:after="OnTipoSegnalazioneChanged" TOption="string" Style="min-width: 300px; width: 100%;">
+                            <FluentOption Value="">-- Seleziona --</FluentOption>
+                            <FluentOption Value="richiesta">Richiesta</FluentOption>
+                            <FluentOption Value="reclamo">Reclamo</FluentOption>
+                        </FluentSelect>
+                        <ValidationMessage For="@(() => _model.TipoSegnalazione)" />
+                    </div>
+
+                    @if (IsRichiesta)
+                    {
+                        <div>
+                            <FluentLabel For="tipoRichiesta">Tipo richiesta</FluentLabel>
+                            <FluentSelect Id="tipoRichiesta" @bind-Value="_model.IdTipoRichiesta" TOption="string" Style="min-width: 600px; width: 100%;">
+                                <FluentOption Value="">-- Seleziona --</FluentOption>
+                                @foreach (var tipo in _lookup.TipiRichiesta)
+                                {
+                                    <FluentOption Value="@tipo.Id.ToString()">@tipo.Descrizione</FluentOption>
+                                }
+                            </FluentSelect>
+                            <ValidationMessage For="@(() => _model.IdTipoRichiesta)" />
+                        </div>
+                    }
+
+                    @* Dati dell'autore e sorgente sono comuni a richieste e reclami; le opzioni provengono dai lookup. *@
+                    @if (IsRichiesta || IsReclamo)
+                    {
+                        <div>
+                            <FluentLabel For="sorgente">Sorgente</FluentLabel>
+                            <FluentSelect Id="sorgente" @bind-Value="_model.Sorgente" TOption="string" Style="min-width: 600px; width: 100%;">
+                                <FluentOption Value="">-- Seleziona --</FluentOption>
+                                @foreach (var sorgente in _lookup.TipiSorgente)
+                                {
+                                    <FluentOption Value="@sorgente.Codice">@sorgente.Descrizione</FluentOption>
+                                }
+                            </FluentSelect>
+                            <ValidationMessage For="@(() => _model.Sorgente)" />
+                        </div>
+
+                        <div>
+                            <FluentLabel For="cognome">Cognome</FluentLabel>
+                            <FluentTextField Id="cognome" @bind-Value="_model.Cognome" Maxlength="200" Style="min-width: 600px; width: 100%;" />
+                            <ValidationMessage For="@(() => _model.Cognome)" />
+                        </div>
+
+                        <div>
+                            <FluentLabel For="nome">Nome</FluentLabel>
+                            <FluentTextField Id="nome" @bind-Value="_model.Nome" Maxlength="200" Style="min-width: 600px; width: 100%;" />
+                            <ValidationMessage For="@(() => _model.Nome)" />
+                        </div>
+
+                        <div>
+                            <FluentLabel For="email">Email</FluentLabel>
+                            <FluentTextField Id="email" @bind-Value="_model.Email" Maxlength="200" Style="min-width: 600px; width: 100%;" />
+                            <ValidationMessage For="@(() => _model.Email)" />
+                        </div>
+
+                        <div>
+                            <FluentLabel For="pec">PEC</FluentLabel>
+                            <FluentTextField Id="pec" @bind-Value="_model.Pec" Maxlength="200" Style="min-width: 600px; width: 100%;" />
+                            <ValidationMessage For="@(() => _model.Pec)" />
+                        </div>
+
+                        <div>
+                            <FluentLabel For="telefono">Telefono</FluentLabel>
+                            <FluentTextField Id="telefono" @bind-Value="_model.Telefono" Maxlength="200" Style="min-width: 600px; width: 100%;" />
+                            <ValidationMessage For="@(() => _model.Telefono)" />
+                        </div>
+
+                        <div>
+                            <FluentLabel For="ragioneSociale">Ragione sociale</FluentLabel>
+                            <FluentTextField Id="ragioneSociale" @bind-Value="_model.RagioneSociale" Maxlength="200" Style="min-width: 600px; width: 100%;" />
+                            <ValidationMessage For="@(() => _model.RagioneSociale)" />
+                        </div>
+
+                        <div>
+                            <FluentLabel For="categoria">Chi sono</FluentLabel>
+                            <FluentSelect Id="categoria" @bind-Value="_model.IdTipoAutoreRichiesta" TOption="string" Style="min-width: 600px; width: 100%;">
+                                <FluentOption Value="">-- Seleziona --</FluentOption>
+                                @foreach (var categoria in _lookup.TipiAutoreRichiesta)
+                                {
+                                    <FluentOption Value="@categoria.Id.ToString()">@categoria.Descrizione</FluentOption>
+                                }
+                            </FluentSelect>
+                            <ValidationMessage For="@(() => _model.IdTipoAutoreRichiesta)" />
+                        </div>
+                    }
+
+                    @* Le richieste prevedono tematica, luogo, eventuale comune specifico, indirizzo e testo. *@
+                    @if (IsRichiesta)
+                    {
+                        <div>
+                            <FluentLabel For="tematica">Tematica</FluentLabel>
+                            <FluentSelect Id="tematica" @bind-Value="_model.IdTipoTematica" TOption="string" Style="min-width: 600px; width: 100%;">
+                                <FluentOption Value="">-- Seleziona --</FluentOption>
+                                @foreach (var tematica in _lookup.TipiTematica)
+                                {
+                                    <FluentOption Value="@tematica.Id.ToString()">@tematica.Descrizione</FluentOption>
+                                }
+                            </FluentSelect>
+                            <ValidationMessage For="@(() => _model.IdTipoTematica)" />
+                        </div>
+
+                        <div>
+                            <FluentLabel For="luogo">Luogo</FluentLabel>
+                            <FluentSelect Id="luogo" @bind-Value="_model.IdTipoLuogo" @bind-Value:after="OnLuogoChanged" TOption="string" Style="min-width: 600px; width: 100%;">
+                                <FluentOption Value="">-- Seleziona --</FluentOption>
+                                @foreach (var luogo in _lookup.TipiLuogo)
+                                {
+                                    <FluentOption Value="@luogo.Id.ToString()">@luogo.Descrizione</FluentOption>
+                                }
+                            </FluentSelect>
+                            <ValidationMessage For="@(() => _model.IdTipoLuogo)" />
+                        </div>
+
+                        @* L'autocomplete ricerca nell'elenco dei comuni e sincronizza la selezione con il campo validato. *@
+                        @if (MostraComuneSpecifico)
+                        {
+                            <div>
+                                <FluentLabel For="comuneLuogo">Comune specifico</FluentLabel>
+                                <FluentAutocomplete Id="comuneLuogo"
+                                                   TOption="string"
+                                                   Items="@_comuniFiltrati"
+                                                   OnOptionsSearch="OnComuniSearch"
+                                                   OptionText="@(c => c)"
+                                                   Multiple="false"
+                                                   MaximumSelectedOptions="1"
+                                                   SelectedOptions="@_comuneLuogoSelezionato"
+                                                   SelectedOptionsChanged="OnComuneLuogoSelezionatoChanged"
+                                                   Class="@GetFieldValidationClass(nameof(_model.ComuneLuogo))"
+                                                   aria-invalid="@GetFieldHasError(nameof(_model.ComuneLuogo))"
+                                                   Placeholder="Digita per cercare..."
+                                                   Style="min-width: 600px; width: 100%;" />
+                                <ValidationMessage For="@(() => _model.ComuneLuogo)" />
+                            </div>
+                        }
+
+                        <div>
+                            <FluentLabel For="indirizzo">Indirizzo</FluentLabel>
+                            <FluentTextArea Id="indirizzo" @bind-Value="_model.Indirizzo" Rows="2" Maxlength="500" Style="min-width: 600px; width: 100%;" />
+                            <ValidationMessage For="@(() => _model.Indirizzo)" />
+                        </div>
+
+                        <div>
+                            <FluentLabel For="testoRichiesta">Testo</FluentLabel>
+                            <FluentTextArea Id="testoRichiesta" @bind-Value="_model.Testo" Rows="5" Maxlength="3000" Style="min-width: 600px; width: 100%;" />
+                            <ValidationMessage For="@(() => _model.Testo)" />
+                        </div>
+                    }
+
+                    @* I reclami richiedono invece la struttura destinataria e il testo del reclamo. *@
+                    @if (IsReclamo)
+                    {
+                        <div>
+                            <FluentLabel For="struttura">Struttura</FluentLabel>
+                            <FluentSelect Id="struttura" @bind-Value="_model.CodiceStruttura" TOption="string" Style="min-width: 600px; width: 100%;">
+                                <FluentOption Value="">-- Seleziona --</FluentOption>
+                                @foreach (var struttura in _lookup.TipiStruttura)
+                                {
+                                    <FluentOption Value="@struttura.Codice">@struttura.Descrizione</FluentOption>
+                                }
+                            </FluentSelect>
+                            <ValidationMessage For="@(() => _model.CodiceStruttura)" />
+                        </div>
+
+                        <div>
+                            <FluentLabel For="testoReclamo">Testo reclamo</FluentLabel>
+                            <FluentTextArea Id="testoReclamo" @bind-Value="_model.Testo" Rows="5" Maxlength="3000" Style="min-width: 600px; width: 100%;" />
+                            <ValidationMessage For="@(() => _model.Testo)" />
+                        </div>
+                    }
+
+                    @* L'elenco mostra file temporanei, rimovibili prima della creazione della segnalazione. *@
+                    @if (IsRichiesta || IsReclamo)
+                    {
+                        <div>
+                            <h5>Allegati</h5>
+                            @if (_nuoviAllegati.Count == 0)
+                            {
+                                <div>Nessun file caricato</div>
+                            }
+                            else
+                            {
+                                <ul class="allegati-lista">
+                                    @foreach (var allegato in _nuoviAllegati)
+                                    {
+                                        <li class="allegato-item">
+                                            <span class="allegato-info">@allegato.NomeFile - @FormattaDimensione(allegato.Dimensione)</span>
+                                            <span class="allegato-azioni">
+                                                <FluentButton OnClick="@(() => RimuoviNuovoAllegato(allegato.Id))" Appearance="Appearance.Outline">Rimuovi</FluentButton>
+                                            </span>
+                                        </li>
+                                    }
+                                </ul>
+                            }
+                        </div>
+
+                        <div>
+                            <FluentButton Id="btnAggiungiAllegato"
+                                          Appearance="Appearance.Accent"
+                                          IconStart="@(new Icons.Regular.Size20.Attach())"
+                                          Title="Aggiungi allegato">
+                                Aggiungi allegato
+                            </FluentButton>
+                            @* Il selettore file è ancorato al pulsante; Accept filtra le estensioni proposte all'utente. *@
+                            <FluentInputFile Id="aggiungiAllegato"
+                                             Class="inputfile-anchor-hidden"
+                                             AnchorId="btnAggiungiAllegato"
+                                             OnInputFileChange="@(EventCallback.Factory.Create<InputFileChangeEventArgs>(this, AggiungiAllegati))"
+                                             Multiple="true"
+                                             Accept="@GetAcceptAttribute()"
+                                             DragDropZoneVisible="false" />
+                            @if (!string.IsNullOrWhiteSpace(_erroreAllegati))
+                            {
+                                <div style="color:red">@_erroreAllegati</div>
+                            }
+                        </div>
+                    }
+
+                    @* Continua esegue la validazione e apre il riepilogo senza salvare; Annulla torna alla Home. *@
+                    <FluentStack Orientation="Orientation.Horizontal" Wrap="true" VerticalAlignment="VerticalAlignment.Center" Style="gap: 0.75rem;">
+                        <FluentButton OnClick="VaiAConfermaAsync"
+                                      Appearance="Appearance.Accent"
+                                      IconStart="@(new Icons.Regular.Size20.ArrowRight())">
+                            Continua
+                        </FluentButton>
+                        <FluentButton OnClick="Annulla"
+                                      Appearance="Appearance.Outline"
+                                      IconStart="@(new Icons.Regular.Size20.Dismiss())">
+                            Annulla
+                        </FluentButton>
+
+                        @* La chiave aggiornata ricrea l'avviso a ogni nuovo tentativo con dati non validi. *@
+                        @if (_mostraAvvisoValidazione)
+                        {
+                            <FluentMessageBar @key="_versioneAvvisoValidazione" Intent="MessageIntent.Warning">
+                                Dati non validi. Correggere i campi evidenziati prima di salvare.
+                            </FluentMessageBar>
+                        }
+                    </FluentStack>
+                </FluentStack>
+            </EditForm>
+        </FluentCard>
+    }
+    else if (_step == 2)
+    {
+        @* Il riepilogo usa lo stesso modello del form, mostrando le descrizioni dei lookup e gli allegati scelti. *@
+        <FluentCard AreaRestricted="false">
+            <FluentStack Orientation="Orientation.Vertical" Style="gap: 0.75rem;">
+                <h4>Passaggio 2 - Conferma dati</h4>
+
+                <FluentMessageBar Intent="MessageIntent.Info">
+                    Dopo il salvataggio i dati iniziali non saranno più modificabili.
+                </FluentMessageBar>
+
+                <div><strong>Tipo segnalazione:</strong> @GetTipoSegnalazioneDescrizione()</div>
+
+                @if (IsRichiesta)
+                {
+                    <div><strong>Tipo richiesta:</strong> @GetDescrizioneLong(_lookup.TipiRichiesta, _model.IdTipoRichiesta)</div>
+                }
+
+                <div><strong>Sorgente:</strong> @GetDescrizioneString(_lookup.TipiSorgente, _model.Sorgente)</div>
+                <div><strong>Cognome:</strong> @ValoreOrDash(_model.Cognome)</div>
+                <div><strong>Nome:</strong> @ValoreOrDash(_model.Nome)</div>
+                <div><strong>Email:</strong> @ValoreOrDash(_model.Email)</div>
+                <div><strong>PEC:</strong> @ValoreOrDash(_model.Pec)</div>
+                <div><strong>Telefono:</strong> @ValoreOrDash(_model.Telefono)</div>
+                <div><strong>Ragione sociale:</strong> @ValoreOrDash(_model.RagioneSociale)</div>
+                <div><strong>Chi sono:</strong> @GetDescrizioneLong(_lookup.TipiAutoreRichiesta, _model.IdTipoAutoreRichiesta)</div>
+
+                @if (IsRichiesta)
+                {
+                    <div><strong>Tematica:</strong> @GetDescrizioneLong(_lookup.TipiTematica, _model.IdTipoTematica)</div>
+                    <div><strong>Luogo:</strong> @GetDescrizioneLong(_lookup.TipiLuogo, _model.IdTipoLuogo)</div>
+                    @if (MostraComuneSpecifico)
+                    {
+                        <div><strong>Comune specifico:</strong> @ValoreOrDash(_model.ComuneLuogo)</div>
+                    }                    
+                    <div><strong>Indirizzo:</strong> @ValoreOrDash(_model.Indirizzo)</div>
+                    <div><strong>Testo:</strong> @ValoreOrDash(_model.Testo)</div>
+                }
+                else
+                {
+                    <div><strong>Struttura:</strong> @GetDescrizioneString(_lookup.TipiStruttura, _model.CodiceStruttura)</div>
+                    <div><strong>Testo reclamo:</strong> @ValoreOrDash(_model.Testo)</div>
+                }
+
+                <div>
+                    <strong>Allegati:</strong>
+                    @if (_nuoviAllegati.Count == 0)
+                    {
+                        <span> Nessun file allegato</span>
+                    }
+                    else
+                    {
+                        <ul>
+                            @foreach (var allegato in _nuoviAllegati)
+                            {
+                                <li>@allegato.NomeFile - @FormattaDimensione(allegato.Dimensione)</li>
+                            }
+                        </ul>
+                    }
+                </div>
+
+                @* Solo Salva crea la segnalazione; Modifica conserva i dati. Durante il salvataggio le azioni sono disabilitate. *@
+                <FluentStack Orientation="Orientation.Horizontal" Wrap="true" Style="gap: 0.75rem;">
+                    <FluentButton OnClick="SalvaAsync"
+                                  Disabled="_inSalvataggio"
+                                  Appearance="Appearance.Accent"
+                                  IconStart="@(new Icons.Regular.Size20.Checkmark())">
+                        Salva
+                    </FluentButton>
+                    <FluentButton OnClick="TornaAlForm"
+                                  Disabled="_inSalvataggio"
+                                  Appearance="Appearance.Outline"
+                                  IconStart="@(new Icons.Regular.Size20.ArrowLeft())">
+                        Modifica
+                    </FluentButton>
+                    <FluentButton OnClick="Annulla"
+                                  Disabled="_inSalvataggio"
+                                  Appearance="Appearance.Outline"
+                                  IconStart="@(new Icons.Regular.Size20.Dismiss())">
+                        Annulla
+                    </FluentButton>
+                </FluentStack>
+            </FluentStack>
+        </FluentCard>
+    }
+</FluentStack>

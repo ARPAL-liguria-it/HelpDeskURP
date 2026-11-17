@@ -1,0 +1,183 @@
+@*
+  Nome del progetto: HelpDesk URP
+  Copyright (C) 2026 Agenzia regionale per la protezione dell'ambiente ligure
+  ---
+  Questo programma è software libero: puoi ridistribuirlo e/o modificarlo
+  secondo i termini della GNU Affero General Public License pubblicata dalla
+  Free Software Foundation, sia la versione 3 della licenza, sia (a tua scelta)
+  qualsiasi versione successiva.
+  ---
+  Questo programma è distribuito nella speranza che possa essere utile,
+  ma SENZA ALCUNA GARANZIA; senza nemmeno la garanzia implicita di
+  COMMERCIABILITÀ o IDONEITÀ PER UNO SCOPO PARTICOLARE. Vedi la
+  GNU Affero General Public License per ulteriori dettagli.
+  ---
+  Dovresti aver ricevuto una copia della GNU Affero General Public License
+  insieme a questo programma. In caso contrario, vedi <https://www.gnu.org/licenses/>.
+*@
+
+@page "/questionari/generazione-url"
+@rendermode InteractiveServer
+
+@* La pagina gestisce un percorso in tre passaggi; lo stato e le azioni sono nel code-behind. *@
+<PageTitle>Generazione URL questionari</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" Style="padding: 1rem; gap: 1rem; max-width: 900px;">
+    <h2>Generazione URL questionari</h2>
+
+    @* Gli errori di caricamento, generazione e copia sono visibili indipendentemente dal passaggio corrente. *@
+    @if (!string.IsNullOrWhiteSpace(_errore))
+    {
+        <FluentMessageBar Intent="MessageIntent.Error">@_errore</FluentMessageBar>
+    }
+
+    @* Il primo passaggio raccoglie i parametri; Continua esegue la validazione prima di mostrare il riepilogo. *@
+    @if (_step == 1)
+    {
+        <FluentCard AreaRestricted="false">
+            <EditForm EditContext="_editContext">
+                @* Collega i messaggi dei campi alle annotazioni e alla validazione del modello. *@
+                <DataAnnotationsValidator />
+                <FluentStack Orientation="Orientation.Vertical" Style="gap: 1rem;">
+                    <h4>Passaggio 1 - Inserimento parametri</h4>
+
+                    <div>
+                        <FluentLabel For="sorgente">Sorgente</FluentLabel>
+                        <FluentSelect Id="sorgente" @bind-Value="_parametri.Sorgente" TOption="string">
+                            <FluentOption Value="">-- Seleziona --</FluentOption>
+                            @foreach (var sorgente in _sorgenti)
+                            {
+                                <FluentOption Value="@sorgente.Sorgente">@sorgente.Sorgente</FluentOption>
+                            }
+                        </FluentSelect>
+                        <ValidationMessage For="@(() => _parametri.Sorgente)" />
+                    </div>
+
+                    <div>
+                        <FluentLabel For="tipoQuestionario">Tipo questionario</FluentLabel>
+                        <FluentSelect Id="tipoQuestionario" @bind-Value="_parametri.CodiceTipoQuestionario" TOption="string">
+                            <FluentOption Value="">-- Seleziona --</FluentOption>
+                            @foreach (var tipo in _tipiQuestionario)
+                            {
+                                <FluentOption Value="@tipo.Codice">@tipo.Nome</FluentOption>
+                            }
+                        </FluentSelect>
+                        <ValidationMessage For="@(() => _parametri.CodiceTipoQuestionario)" />
+                    </div>
+
+                    <div>
+                        <FluentLabel For="modalitaCompilazione">Modalità compilazione</FluentLabel>
+                        <FluentSelect Id="modalitaCompilazione" @bind-Value="_parametri.ModalitaCompilazione" TOption="string">
+                            <FluentOption Value="">-- Seleziona --</FluentOption>
+                            <FluentOption Value="Libera">Libera</FluentOption>
+                            <FluentOption Value="Personale">Personale</FluentOption>
+                        </FluentSelect>
+                        <ValidationMessage For="@(() => _parametri.ModalitaCompilazione)" />
+                    </div>
+
+                    @* L'indirizzo email viene richiesto solo per la compilazione personale. *@
+                    @if (_parametri.ModalitaCompilazione == "Personale")
+                    {
+                        <div>
+                            <FluentLabel For="email">Email</FluentLabel>
+                            <FluentTextField Id="email" @bind-Value="_parametri.Email" Style="min-width: 500px;" />
+                            <ValidationMessage For="@(() => _parametri.Email)" />
+                        </div>
+                    }
+                    <FluentStack Orientation="Orientation.Horizontal" Wrap="true" Style="gap: 0.75rem;">
+                        <FluentButton OnClick="VaiAConfermaAsync"
+                                      Appearance="Appearance.Accent"
+                                      IconStart="@(new Icons.Regular.Size20.ArrowRight())">
+                            Continua
+                        </FluentButton>
+                        @* Il ritorno alla Home è disponibile ai gestori; la stessa regola vale nei passaggi successivi. *@
+                        @if (OperatoreCorrente.SeGestore())
+                        {
+                            <FluentButton OnClick="Annulla"
+                                          Appearance="Appearance.Outline"
+                                          IconStart="@(new Icons.Regular.Size20.Dismiss())">
+                                Annulla
+                            </FluentButton>
+                        }
+                    </FluentStack>
+                </FluentStack>
+            </EditForm>
+        </FluentCard>
+    }
+    else if (_step == 2)
+    {
+        @* Il riepilogo consente di confermare o correggere i dati; Conferma e Indietro sono disabilitati durante la generazione. *@
+        <FluentCard AreaRestricted="false">
+            <FluentStack Orientation="Orientation.Vertical" Style="gap: 0.75rem;">
+                <h4>Passaggio 2 - Conferma parametri</h4>
+                <div><strong>Sorgente:</strong> @_parametri.Sorgente</div>
+                <div><strong>Tipo questionario:</strong> @GetNomeTipoQuestionario()</div>
+                <div><strong>Modalità compilazione:</strong> @_parametri.ModalitaCompilazione</div>
+                @if (_parametri.ModalitaCompilazione == "Personale")
+                {
+                    <div><strong>Email:</strong> @_parametri.Email</div>
+                }
+
+                <FluentStack Orientation="Orientation.Horizontal" Wrap="true" Style="gap: 0.75rem;">
+                    <FluentButton OnClick="ConfermaECreaUrlAsync"
+                                  Disabled="_inGenerazione"
+                                  Appearance="Appearance.Accent"
+                                  IconStart="@(new Icons.Regular.Size20.Checkmark())">
+                        Conferma e genera URL
+                    </FluentButton>
+                    <FluentButton OnClick="TornaAlPassaggio1"
+                                  Disabled="_inGenerazione"
+                                  Appearance="Appearance.Outline"
+                                  IconStart="@(new Icons.Regular.Size20.ArrowLeft())">
+                        Indietro
+                    </FluentButton>
+                    @if (OperatoreCorrente.SeGestore())
+                    {
+                        <FluentButton OnClick="Annulla"
+                                      Appearance="Appearance.Outline"
+                                      IconStart="@(new Icons.Regular.Size20.Dismiss())">
+                            Annulla
+                        </FluentButton>
+                    }
+                </FluentStack>
+            </FluentStack>
+        </FluentCard>
+    }
+    else if (_step == 3)
+    {
+        @* Il risultato è in sola lettura e può essere copiato oppure si può avviare una nuova generazione. *@
+        <FluentCard AreaRestricted="false">
+            <FluentStack Orientation="Orientation.Vertical" Style="gap: 1rem;">
+                <h4>Passaggio 3 - URL generata</h4>
+                <FluentTextField Value="@_urlGenerata" ReadOnly="true" Style="min-width: 700px;" />
+
+                <FluentStack Orientation="Orientation.Horizontal" Wrap="true" Style="gap: 0.75rem;">
+                    <FluentButton OnClick="CopiaUrlAsync"
+                                  Appearance="Appearance.Accent"
+                                  IconStart="@(new Icons.Regular.Size20.Copy())">
+                        Copia URL
+                    </FluentButton>
+                    <FluentButton OnClick="NuovaGenerazione"
+                                  Appearance="Appearance.Outline"
+                                  IconStart="@(new Icons.Regular.Size20.ArrowReset())">
+                        Nuova generazione
+                    </FluentButton>
+                    @if (OperatoreCorrente.SeGestore())
+                    {
+                        <FluentButton OnClick="Annulla"
+                                      Appearance="Appearance.Outline"
+                                      IconStart="@(new Icons.Regular.Size20.Dismiss())">
+                            Chiudi
+                        </FluentButton>
+                    }
+                </FluentStack>
+
+                @* Il messaggio di successo compare solo dopo la copia negli appunti riuscita. *@
+                @if (!string.IsNullOrWhiteSpace(_messaggioCopia))
+                {
+                    <FluentMessageBar Intent="MessageIntent.Success">@_messaggioCopia</FluentMessageBar>
+                }
+            </FluentStack>
+        </FluentCard>
+    }
+</FluentStack>

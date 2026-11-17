@@ -1,0 +1,70 @@
+/*
+ * Nome del progetto: HelpDesk URP
+ * Copyright (C) 2026 Agenzia regionale per la protezione dell'ambiente ligure
+ * ---
+ * Questo programma è software libero: puoi ridistribuirlo e/o modificarlo
+ * secondo i termini della GNU Affero General Public License pubblicata dalla
+ * Free Software Foundation, sia la versione 3 della licenza, sia (a tua scelta)
+ * qualsiasi versione successiva.
+ * ---
+ * Questo programma è distribuito nella speranza che possa essere utile,
+ * ma SENZA ALCUNA GARANZIA; senza nemmeno la garanzia implicita di
+ * COMMERCIABILITÀ o IDONEITÀ PER UNO SCOPO PARTICOLARE. Vedi la
+ * GNU Affero General Public License per ulteriori dettagli.
+ * ---
+ * Dovresti aver ricevuto una copia della GNU Affero General Public License
+ * insieme a questo programma. In caso contrario, vedi <https://www.gnu.org/licenses/>.
+*/
+
+.nuova-segnalazione-container ::deep fluent-text-field,
+.nuova-segnalazione-container ::deep fluent-select,
+.nuova-segnalazione-container ::deep fluent-text-area {
+    width: 100%;
+    min-width: 600px;
+}
+
+.nuova-segnalazione-container ::deep fluent-text-field::part(control),
+.nuova-segnalazione-container ::deep fluent-text-area::part(control) {
+    width: 100%;
+    min-width: 600px;
+}
+
+.nuova-segnalazione-container ::deep fluent-select::part(control) {
+    width: 100%;
+    min-width: 600px;
+}
+
+.nuova-segnalazione-container ::deep fluent-select::part(listbox) {
+    min-width: 600px;
+}
+
+.inputfile-anchor-hidden {
+    display: none !important;
+}
+
+.allegati-lista {
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0 0;
+}
+
+.allegato-item {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.75rem;
+    padding: 0.2rem 0;
+}
+
+.allegato-info {
+    flex: 0 0 24rem;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+.allegato-azioni {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+}

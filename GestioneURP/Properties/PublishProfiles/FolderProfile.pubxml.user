@@ -1,0 +1,9 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- https://go.microsoft.com/fwlink/?LinkID=208121. -->
+<Project>
+  <PropertyGroup>
+    <History>True|2026-11-03T15:20:01.1268139Z||;True|2026-09-16T15:00:08.3731751+02:00||;True|2026-09-16T14:56:54.5392335+02:00||;True|2026-09-10T18:24:08.0403136+02:00||;True|2026-09-03T14:03:44.9502332+02:00||;True|2026-09-03T13:49:56.7524067+02:00||;True|2026-09-03T11:54:55.0837265+02:00||;True|2026-09-03T11:53:07.7308872+02:00||;True|2026-09-03T11:41:04.1182462+02:00||;True|2026-09-03T11:33:47.5586342+02:00||;True|2026-09-03T11:14:28.5116554+02:00||;False|2026-09-03T11:13:00.8928754+02:00||;True|2026-09-03T11:10:56.3152265+02:00||;True|2026-08-31T18:33:29.3398987+02:00||;True|2026-08-31T18:24:01.9831648+02:00||;False|2026-08-31T18:23:42.2302803+02:00||;</History>
+    <LastFailureDetails />
+    <_PublishTargetUrl>C:\Users\gianky\Documents\Visual Studio 18\Projects\GestioneURP\bin\Release\net10.0\publish</_PublishTargetUrl>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,90 @@
+﻿@*
+  Nome del progetto: HelpDesk URP
+  Copyright (C) 2026 Agenzia regionale per la protezione dell'ambiente ligure
+  ---
+  Questo programma è software libero: puoi ridistribuirlo e/o modificarlo
+  secondo i termini della GNU Affero General Public License pubblicata dalla
+  Free Software Foundation, sia la versione 3 della licenza, sia (a tua scelta)
+  qualsiasi versione successiva.
+  ---
+  Questo programma è distribuito nella speranza che possa essere utile,
+  ma SENZA ALCUNA GARANZIA; senza nemmeno la garanzia implicita di
+  COMMERCIABILITÀ o IDONEITÀ PER UNO SCOPO PARTICOLARE. Vedi la
+  GNU Affero General Public License per ulteriori dettagli.
+  ---
+  Dovresti aver ricevuto una copia della GNU Affero General Public License
+  insieme a questo programma. In caso contrario, vedi <https://www.gnu.org/licenses/>.
+*@
+
+@inject IConfiguration Configuration
+
+<h3>Allegati</h3>
+
+<p>
+    Allegare eventuali file.
+</p>
+
+<p>E' possibile caricare fino a 10 file, dimensione massima 10 MB.</p>
+<p>Le estensioni consentite sono: @Configuration["EstensioniAllegati"]</p>
+
+<FluentMessageBar Intent="MessageIntent.Error" AllowDismiss="false" Visible="@elencoErrori.Any()">
+    @foreach (var errore in elencoErrori)
+    {
+        <div>@errore</div>
+    }
+</FluentMessageBar>
+
+<FluentInputFile DragDropZoneVisible="false"
+                 Mode="InputFileMode.SaveToTemporaryFolder"
+                 Multiple="true"
+                 AnchorId="MyUploadButton"
+                 MaximumFileSize="@(10 * 1024 * 1024)"
+                 Accept="@Configuration["EstensioniAllegati"]"
+                 OnCompleted="@OnCompleted" />
+
+@if (State.AllegatiCaricati.Any())
+{
+    <div style="border: 1px solid #ccc; padding: 5px;">
+        @foreach (var allegato in State.AllegatiCaricati)
+        {
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                @allegato.NomeFile -
+                @($"{Decimal.Divide(allegato.DimensioneFile, 1024):N} KB")
+
+                <FluentSpacer />
+
+                <FluentButton Appearance="Appearance.Neutral"
+                              Type="ButtonType.Button"
+                              @onclick="() => EliminaAllegato(allegato)">
+                    Rimuovi
+                </FluentButton>
+            </div>
+        }
+    </div>
+}
+
+<FluentButton Id="MyUploadButton" Appearance="Appearance.Accent">
+    Seleziona file
+</FluentButton>
+
+<FluentStack Orientation="Orientation.Horizontal"
+             HorizontalGap="16"
+             Style="margin-top:20px;">
+
+    <FluentButton Appearance="Appearance.Neutral"
+                  Type="ButtonType.Button"
+                  @onclick="Indietro"
+                  Disabled="@(State.Step == 1)">
+        Indietro
+    </FluentButton>
+    <FluentButton Appearance="Appearance.Accent"
+                  Type="ButtonType.Button"
+                  @onclick="Avanti"
+                  Disabled="@(State.Step == 4)">
+        Continua
+    </FluentButton>
+</FluentStack>
+
+@code {
+
+}

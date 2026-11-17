@@ -1,0 +1,48 @@
+@*
+  Nome del progetto: HelpDesk URP
+  Copyright (C) 2026 Agenzia regionale per la protezione dell'ambiente ligure
+  ---
+  Questo programma è software libero: puoi ridistribuirlo e/o modificarlo
+  secondo i termini della GNU Affero General Public License pubblicata dalla
+  Free Software Foundation, sia la versione 3 della licenza, sia (a tua scelta)
+  qualsiasi versione successiva.
+  ---
+  Questo programma è distribuito nella speranza che possa essere utile,
+  ma SENZA ALCUNA GARANZIA; senza nemmeno la garanzia implicita di
+  COMMERCIABILITÀ o IDONEITÀ PER UNO SCOPO PARTICOLARE. Vedi la
+  GNU Affero General Public License per ulteriori dettagli.
+  ---
+  Dovresti aver ricevuto una copia della GNU Affero General Public License
+  insieme a questo programma. In caso contrario, vedi <https://www.gnu.org/licenses/>.
+*@
+
+@page "/errore-logon"
+@page "/errore-logon/{Testo}"
+
+<PageTitle>Errore logon</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical"
+             HorizontalAlignment="HorizontalAlignment.Center"
+             Style="padding: 2rem 1rem; min-height: 60vh;">
+    <div style="max-width: 42rem; width: 100%; display: flex; align-items: flex-start; gap: 1rem; padding: 1rem 1.25rem; border: 1px solid #f9c74f; border-radius: 0.5rem; background: #fff8e1; color: #5c3b00; box-sizing: border-box;">
+        <FluentIcon Value="@(new Icons.Regular.Size28.Warning())"
+                    Style="font-size: 2rem; color: #d97706; flex-shrink: 0; margin-top: 0.2rem;" />
+        <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+            <strong style="font-size: 1.35rem; line-height: 1.3;">Errore di accesso</strong>
+            <span style="font-size: 1.1rem; line-height: 1.6;">@Messaggio</span>
+        </div>
+    </div>
+</FluentStack>
+
+@code {
+    [Parameter]
+    public string? Testo { get; set; }
+
+    [SupplyParameterFromQuery(Name = "testo")]
+    public string? TestoQuery { get; set; }
+
+    private string Messaggio =>
+        !string.IsNullOrWhiteSpace(Testo) ? Testo :
+        !string.IsNullOrWhiteSpace(TestoQuery) ? TestoQuery :
+        "L'utente non è autorizzato all'accesso all'applicazione.";
+}

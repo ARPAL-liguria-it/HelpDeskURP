@@ -1,0 +1,356 @@
+@*
+  Nome del progetto: HelpDesk URP
+  Copyright (C) 2026 Agenzia regionale per la protezione dell'ambiente ligure
+  ---
+  Questo programma è software libero: puoi ridistribuirlo e/o modificarlo
+  secondo i termini della GNU Affero General Public License pubblicata dalla
+  Free Software Foundation, sia la versione 3 della licenza, sia (a tua scelta)
+  qualsiasi versione successiva.
+  ---
+  Questo programma è distribuito nella speranza che possa essere utile,
+  ma SENZA ALCUNA GARANZIA; senza nemmeno la garanzia implicita di
+  COMMERCIABILITÀ o IDONEITÀ PER UNO SCOPO PARTICOLARE. Vedi la
+  GNU Affero General Public License per ulteriori dettagli.
+  ---
+  Dovresti aver ricevuto una copia della GNU Affero General Public License
+  insieme a questo programma. In caso contrario, vedi <https://www.gnu.org/licenses/>.
+*@
+
+@using GestioneURP.Application.Services
+
+@* Protegge l'uscita dalla pagina quando ci sono modifiche non salvate, un avanzamento
+   in preparazione o un'operazione in corso. Le navigazioni interne passano dal code-behind. *@
+<NavigationLock ConfirmExternalNavigation="@(ModificheNonSalvate || _transizione is not null || _occupato)"
+                OnBeforeInternalNavigation="PrimaDellaNavigazione" />
+
+@* Distingue gli errori di caricamento della pratica dagli avvisi sugli elenchi di supporto. *@
+@if (_erroreCaricamento is not null)
+{
+    <FluentMessageBar Intent="MessageIntent.Error">@_erroreCaricamento</FluentMessageBar>
+}
+@if (_erroreElenchi is not null)
+{
+    <FluentMessageBar Intent="MessageIntent.Warning">@_erroreElenchi</FluentMessageBar>
+}
+@* Il modulo viene mostrato solo quando è disponibile il contesto di modifica.
+   Il salvataggio e la gestione degli eventi sono delegati al code-behind. *@
+@if (_editContext is not null)
+{
+<EditForm EditContext="_editContext" OnSubmit="SalvaGestionePratica">
+    @* L'avviso rende percepibile anche alle tecnologie assistive la presenza di modifiche da salvare. *@
+    @if (ModificheNonSalvate)
+    {
+        <div class="gestione-pratica-stato-salvataggio">
+            <FluentMessageBar Intent="MessageIntent.Warning" AllowDismiss="false" FadeIn="false"
+                              role="status" aria-live="polite" aria-atomic="true">
+                Modifiche non salvate
+            </FluentMessageBar>
+        </div>
+    }
+    @* Il contenuto sottostante non è interattivo mentre è aperta una modale o è in corso un'operazione. *@
+    <div class="gestione-pratica-container" inert="@(ModaleAperto || _occupato ? string.Empty : null)">
+        @* La timeline usa lo stato salvato come riferimento: solo i campi dello stato corrente
+           sono modificabili; lo stato Aperta resta sempre in sola lettura. *@
+        <ol class="timeline-stati">
+            @foreach (var stato in StatiTimeline)
+            {
+                <li class="timeline-nodo" aria-current="@(stato == _salvata.StatoPratica ? "step" : null)" @key="stato">
+                    <FluentCard AreaRestricted="false" Class="timeline-stato-card">
+                        <h4>@stato</h4>
+                        <CampiStatoPratica Dati="_gestionePratica" Stato="@stato"
+                                          SolaLettura="@(stato == "Aperta" || stato != _salvata.StatoPratica)"
+                                          DataApertura="DataInserimentoSegnalazione"
+                                          Operatori="OperatoriDisponibili" Strutture="StruttureDisponibili"
+                                          OnModificato="ModificatoStatoCorrente" />
+                    </FluentCard>
+                </li>
+            }
+        </ol>
+        @* Propone solo gli avanzamenti consentiti dallo stato salvato e mostra l'eventuale motivo
+           di blocco. Nello stato di risposta al cittadino offre anche l'invio dell'e-mail. *@
+        @if (GestionePraticaService.GetStatiSuccessivi(_salvata.StatoPratica).Count > 0)
+        {
+            <section aria-labelledby="avanzamento-pratica-titolo">
+                <FluentCard AreaRestricted="false">
+                    <div class="avanzamento-pratica-contenuto">
+                        <h3 id="avanzamento-pratica-titolo" class="avanzamento-pratica-titolo">
+                            <FluentIcon Value="@(new Icons.Regular.Size24.ArrowRight())" aria-hidden="true" />
+                            Avanza pratica a
+                        </h3>
+                        @if (MotivoBloccoAvanzamento is { } motivoBlocco)
+                        {
+                            <FluentMessageBar Intent="MessageIntent.Info" AllowDismiss="false" role="status">
+                                @motivoBlocco
+                            </FluentMessageBar>
+                        }
+                        <FluentStack Orientation="Orientation.Horizontal" Wrap="true">
+                            @foreach (var stato in GestionePraticaService.GetStatiSuccessivi(_salvata.StatoPratica))
+                            {
+                                <FluentButton OnClick="@(() => ApriAvanzamento(stato))" Disabled="@(!PuoAvanzare)" Appearance="Appearance.Outline">@stato</FluentButton>
+                            }
+                            @if (_salvata.StatoPratica == "Risposta per il cittadino")
+                            {
+                                <FluentButton OnClick="ApriEmail" Disabled="@(!PuoAprireEmail)" Appearance="Appearance.Accent">Invia e-mail e chiudi pratica</FluentButton>
+                            }
+                        </FluentStack>
+                    </div>
+                </FluentCard>
+            </section>
+        }
+
+        @* Separa gli allegati già presenti dai nuovi file in attesa di salvataggio. *@
+        <FluentCard AreaRestricted="false">
+            <div style="display:flex; flex-direction:column; gap:1rem;">
+                <div>
+                    <h5>Allegati esistenti</h5>
+                    @if (_allegatiEsistenti.Count == 0)
+                    {
+                        <div>Nessun file allegato</div>
+                    }
+                    else
+                    {
+                        <ul class="allegati-lista">
+                            @foreach (var allegato in _allegatiEsistenti)
+                            {
+                                <li class="allegato-item">
+                                    <span class="allegato-info @(allegato.InEliminazione ? "allegato-in-eliminazione" : string.Empty)">@allegato.NomeFile - @FormatDataOra(allegato.DataCaricamento)</span>
+                                    <span class="allegato-azioni">
+                                        <FluentAnchor Href="@GetAllegatoDownloadUrl(allegato.IdAllegato)"
+                                                      Download="@allegato.NomeFile"
+                                                      Appearance="Appearance.Outline"
+                                                      IconStart="@(new Icons.Regular.Size20.ArrowDownload())"
+                                                      Class="link-scarica">
+                                            Scarica
+                                        </FluentAnchor>
+                                        @* La rimozione è rappresentata come modifica annullabile prima del salvataggio. *@
+                                        @if (allegato.InEliminazione)
+                                        {
+                                            <span>In eliminazione</span>
+                                            <FluentButton OnClick="@(() => AnnullaRimozioneAllegatoEsistente(allegato.IdAllegato))" Appearance="Appearance.Outline">Annulla rimozione</FluentButton>
+                                        }
+                                        else
+                                        {
+                                            <FluentButton OnClick="@(() => RimuoviAllegatoEsistente(allegato.IdAllegato))" Appearance="Appearance.Outline">Rimuovi</FluentButton>
+                                        }
+                                    </span>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+
+                <div>
+                    <h5>Nuovi allegati (da salvare)</h5>
+                    @if (_nuoviAllegati.Count == 0)
+                    {
+                        <div>Nessun file caricato</div>
+                    }
+                    else
+                    {
+                        <ul class="allegati-lista">
+                            @foreach (var allegato in _nuoviAllegati)
+                            {
+                                <li class="allegato-item">
+                                    <span class="allegato-info">@allegato.NomeFile - @FormattaDimensione(allegato.Dimensione)</span>
+                                    <span class="allegato-azioni">
+                                        <FluentButton OnClick="@(() => RimuoviNuovoAllegato(allegato.Id))" Appearance="Appearance.Outline">Rimuovi</FluentButton>
+                                    </span>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+                <div>
+                    @* Il pulsante apre il selettore file tramite AnchorId; il gestore riceve
+                       i file selezionati e gli eventuali errori vengono mostrati subito sotto. *@
+                    <FluentButton Id="btnAggiungiAllegato"
+                                  Appearance="Appearance.Accent"
+                                  IconStart="@(new Icons.Regular.Size20.Attach())"
+                                  Title="Aggiungi allegato">
+                        Aggiungi allegato
+                    </FluentButton>
+                    <FluentInputFile Id="aggiungiAllegato"
+                                     Class="inputfile-anchor-hidden"
+                                     AnchorId="btnAggiungiAllegato"
+                                     OnInputFileChange="@(EventCallback.Factory.Create<InputFileChangeEventArgs>(this, AggiungiAllegati))"
+                                     Multiple="true"
+                                     Accept="@GetAcceptAttribute()"
+                                     DragDropZoneVisible="false" />
+                    @if (!string.IsNullOrWhiteSpace(_erroreAllegati))
+                    {
+                        <div style="color:red">@_erroreAllegati</div>
+                    }
+                </div>
+            </div>
+        </FluentCard>
+
+        <div class="gestione-pratica-meta">
+            <FluentLabel Class="gestione-pratica-meta-label">Ultimo aggiornamento:</FluentLabel>
+            <span class="gestione-pratica-meta-value">
+                @GetUltimoAggiornamentoText()
+            </span>
+        </div>
+
+        @* La barra raccoglie errori e azioni della pratica. Salvataggio, eliminazione e registro
+           sono disponibili in base alle modifiche presenti e allo stato delle operazioni. *@
+        <div class="gestione-pratica-azioni-barra">
+            @if (_erroreSalvataggio is not null || _erroriValidazione.HasErrorFor("Form"))
+            {
+                <div class="gestione-pratica-azioni-messaggi">
+                    <FluentMessageBar Intent="MessageIntent.Error">
+                        @(_erroreSalvataggio ?? _erroriValidazione.GetErrorFor("Form"))
+                    </FluentMessageBar>
+                </div>
+            }
+
+            <FluentStack Orientation="Orientation.Horizontal" Wrap="true" Class="gestione-pratica-azioni">
+                <FluentButton OnClick="RichiediUscita" Disabled="@(_occupato || ModaleAperto)" Appearance="Appearance.Outline">← Torna all’elenco segnalazioni</FluentButton>
+                <div class="gestione-pratica-salvataggio-azioni">
+                    <FluentButton OnClick="SalvaGestionePratica" Disabled="@(_occupato || !ModificheNonSalvate)" Appearance="Appearance.Accent">Salva modifiche</FluentButton>
+                    @if (ModificheNonSalvate)
+                    {
+                        <span class="stato-salvataggio-contenuto" aria-hidden="true">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.Warning())" />
+                            <span>Modifiche non salvate</span>
+                        </span>
+                    }
+                </div>
+                @if (MostraPulsanteElimina)
+                {
+                    <FluentButton OnClick="ApriConfermaEliminazione" Disabled="@_occupato" Appearance="Appearance.Outline">Elimina</FluentButton>
+                }
+                @if (_registroAttivita.Count > 0)
+                {
+                    <FluentButton OnClick="ApriRegistroAttivita" Disabled="@(_occupato || _transizione is not null)" Style="margin-left:auto;" Appearance="Appearance.Outline">Registro attività</FluentButton>
+                }
+                else
+                {
+                    <FluentLabel Style="margin-left:auto; color:gray;">Nessuna registrazione attività</FluentLabel>
+                }
+            </FluentStack>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(_erroreRegistroAttivita))
+        {
+            <div class="registro-attivita-messaggio">@_erroreRegistroAttivita</div>
+        }
+    </div>
+</EditForm>
+}
+
+@* Il pannello e-mail notifica al componente se tornare alla gestione o all'elenco. *@
+@if (_mostraEmail)
+{
+    <InvioEmailPanel IdSegnalazione="IdSegnalazione" TipoSegnalazione="@TipoSegnalazione"
+                    OnGestione="ChiudiEmailAsync" OnElenco="ElencoDopoEmail" />
+}
+
+@* L'avanzamento usa dati e contesto di modifica separati dal modulo principale:
+   l'operatore compila i campi del nuovo stato e può confermare oppure annullare. *@
+@if (_transizione is not null)
+{
+    <FluentDialog Hidden="false" Modal="true" TrapFocus="true" PreventScroll="true"
+                  HiddenChanged="ChiusuraDialogoAvanzamento" AriaLabelledby="avanzamento-titolo"
+                  Style="--dialog-width: min(48rem, calc(100vw - 2rem));">
+        <div class="dialogo-pratica">
+            <h4 id="avanzamento-titolo">Avanzamento allo stato: @_transizione.StatoPratica</h4>
+            <EditForm EditContext="_editContextTransizione" OnSubmit="ConfermaAvanzamentoAsync">
+                <div inert="@(_occupato ? string.Empty : null)">
+                    <CampiStatoPratica Dati="_transizione" Stato="@(_transizione.StatoPratica!)"
+                                      Operatori="OperatoriDisponibili" Strutture="StruttureDisponibili"
+                                      OnModificato="ModificataTransizione" />
+                </div>
+                @if (_erroreSalvataggio is not null)
+                {
+                    <FluentMessageBar Intent="MessageIntent.Error">@_erroreSalvataggio</FluentMessageBar>
+                }
+                <FluentStack Orientation="Orientation.Horizontal" Wrap="true" Style="margin-top: 1rem;">
+                    <FluentButton OnClick="ConfermaAvanzamentoAsync" Disabled="@(!PuoConfermare)" Appearance="Appearance.Accent">Conferma e avanza</FluentButton>
+                    <FluentButton OnClick="AnnullaAvanzamento" Disabled="@_occupato" Appearance="Appearance.Outline">Annulla</FluentButton>
+                </FluentStack>
+            </EditForm>
+        </div>
+    </FluentDialog>
+}
+
+@* Prima di abbandonare modifiche non salvate, consente di salvarle, scartarle o restare nella pagina. *@
+@if (_mostraUscita)
+{
+    <FluentDialog Hidden="false" Modal="true" TrapFocus="true" PreventScroll="true"
+                  HiddenChanged="ChiusuraDialogoUscita" AriaLabelledby="uscita-titolo"
+                  Style="--dialog-width: min(42rem, calc(100vw - 2rem));">
+        <div class="dialogo-pratica">
+            <h4 id="uscita-titolo">Modifiche non salvate</h4>
+            <p>Salvare le modifiche prima di uscire?</p>
+            <FluentStack Orientation="Orientation.Horizontal" Wrap="true">
+                <FluentButton OnClick="SalvaEdEsciAsync" Appearance="Appearance.Accent">Salva ed esci</FluentButton>
+                <FluentButton OnClick="EsciSenzaSalvare" Appearance="Appearance.Outline">Esci senza salvare</FluentButton>
+                <FluentButton OnClick="Rimani" Appearance="Appearance.Outline">Rimani su questa pagina</FluentButton>
+            </FluentStack>
+        </div>
+    </FluentDialog>
+}
+
+@* Il registro si apre sopra la gestione, senza navigare altrove né smontare il modulo.
+   Il clic sullo sfondo chiude il pannello; i clic al suo interno non si propagano allo sfondo. *@
+@if (_mostraRegistroAttivita)
+{
+    <div class="registro-attivita-overlay" role="dialog" aria-modal="true" aria-labelledby="registro-attivita-titolo" @onclick="ChiudiRegistroAttivita">
+        <div class="registro-attivita-panel" @onclick:stopPropagation="true">
+            <div class="registro-attivita-header">
+                <h4 id="registro-attivita-titolo">Registro attività</h4>
+                <FluentButton OnClick="ChiudiRegistroAttivita" Appearance="Appearance.Outline">Chiudi</FluentButton>
+            </div>
+
+            <div class="registro-attivita-tabella-wrapper">
+                <table class="registro-attivita-tabella">
+                    <thead>
+                        <tr>
+                            <th>ID log</th>
+                            <th>Data/ora evento</th>
+                            <th>Operatore</th>
+                            <th>Stato pratica</th>
+                            <th>Dettagli</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var registro in _registroAttivita)
+                        {
+                            <tr>
+                                <td>@registro.IdLog</td>
+                                <td>@FormattaDataOraEvento(registro.DataOraEvento)</td>
+                                <td>@registro.Operatore</td>
+                                <td>@registro.StatoPratica</td>
+                                <td>
+                                    @if (string.IsNullOrWhiteSpace(registro.Dettagli))
+                                    {
+                                        <span>-</span>
+                                    }
+                                    else
+                                    {
+                                        @* Mantiene le interruzioni di riga dei dettagli, visualizzati in sola lettura. *@
+                                        <pre class="registro-attivita-dettagli">@registro.Dettagli</pre>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+@* L'eliminazione richiede una conferma esplicita; annullamento e clic sullo sfondo chiudono la richiesta. *@
+@if (_mostraConfermaEliminazione)
+{
+    <div class="conferma-eliminazione-overlay" role="dialog" aria-modal="true" aria-labelledby="conferma-eliminazione-titolo" @onclick="AnnullaConfermaEliminazione">
+        <div class="conferma-eliminazione-panel" @onclick:stopPropagation="true">
+            <h4 id="conferma-eliminazione-titolo">Conferma eliminazione</h4>
+            <p>Confermi la cancellazione della segnalazione?</p>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.End" Class="conferma-eliminazione-azioni">
+                <FluentButton OnClick="ConfermaEliminazioneAsync" Appearance="Appearance.Accent">Conferma</FluentButton>
+                <FluentButton OnClick="AnnullaConfermaEliminazione" Appearance="Appearance.Outline">Annulla</FluentButton>
+            </FluentStack>
+        </div>
+    </div>
+}

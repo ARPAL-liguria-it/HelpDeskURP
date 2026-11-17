@@ -1,0 +1,15 @@
+Scaffold-DbContext "user id=URP_HD;password=URP_HD;data source=localhost/xe" Oracle.EntityFrameworkCore -OutputDir Data -UseDatabaseNames -Context URP_HDContext -Force -NoPluralize  -t ALLEGATI_RICHIESTE, RICHIESTE, TIPI_AUTORE_RICHIESTA, TIPI_LUOGO, TIPI_RICHIESTA, TIPI_TEMATICA, RECLAMI, ALLEGATI_RECLAMI, TIPI_STRUTTURA, TIPI_SORGENTE, CONTATORI, V_ELENCO_COMUNI_PROV
+
+rifacendo lo scaffolding, sostituire in Data\URP_HDContext.cs
+
+//    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+//#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+//        => optionsBuilder.UseOracle("user id=URP_HD;password=URP_HD;data source=localhost/xe");
+
+	protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+	{
+		if (!optionsBuilder.IsConfigured)
+		{
+			// Lascia vuoto oppure configura solo per scenari particolari.
+		}
+	}

@@ -1,0 +1,92 @@
+﻿@*
+  Nome del progetto: HelpDesk URP
+  Copyright (C) 2026 Agenzia regionale per la protezione dell'ambiente ligure
+  ---
+  Questo programma è software libero: puoi ridistribuirlo e/o modificarlo
+  secondo i termini della GNU Affero General Public License pubblicata dalla
+  Free Software Foundation, sia la versione 3 della licenza, sia (a tua scelta)
+  qualsiasi versione successiva.
+  ---
+  Questo programma è distribuito nella speranza che possa essere utile,
+  ma SENZA ALCUNA GARANZIA; senza nemmeno la garanzia implicita di
+  COMMERCIABILITÀ o IDONEITÀ PER UNO SCOPO PARTICOLARE. Vedi la
+  GNU Affero General Public License per ulteriori dettagli.
+  ---
+  Dovresti aver ricevuto una copia della GNU Affero General Public License
+  insieme a questo programma. In caso contrario, vedi <https://www.gnu.org/licenses/>.
+*@
+
+@inject NavigationManager NavigationManager
+@inject IDbContextFactory<URP_HDContext> DbFactory
+@inject IJSRuntime JS
+
+<h3>Dati del reclamo</h3>
+
+<p>Compilare il seguente modulo.</p>
+
+<FluentStack Orientation="Orientation.Vertical"
+             VerticalGap="16"
+             Style="width:100%;">
+
+    <FluentMessageBar Intent="MessageIntent.Error" AllowDismiss="false" Visible="@elencoErrori.Any()">
+        @foreach (var errore in elencoErrori)
+        {
+            <div>@errore</div>
+        }
+    </FluentMessageBar>
+
+    <FluentTextField @bind-Value=State.Reclamo.COGNOME_AUTORE Label="Cognome:" style="width: 100%;" Required="true" Maxlength="200" ReadOnly="@cognomePrecompilato" Class="campo-readonly"></FluentTextField>
+    <FluentTextField @bind-Value=State.Reclamo.NOME_AUTORE Label="Nome:" style="width: 100%;" Required="true" Maxlength="200" ReadOnly="@nomePrecompilato" Class="campo-readonly"></FluentTextField>
+    <FluentTextField @bind-Value=State.Reclamo.EMAIL_AUTORE Label="E-mail:" style="width: 100%;" Required="true" Maxlength="200" ReadOnly="@emailPrecompilato" Class="campo-readonly"></FluentTextField>
+    <FluentTextField @bind-Value=State.Reclamo.PEC_AUTORE Label="PEC:" style="width: 100%;" Maxlength="200"></FluentTextField>
+    <FluentTextField @bind-Value=State.Reclamo.TELEFONO_AUTORE Label="Telefono:" style="width: 100%;" Maxlength="200"></FluentTextField>
+
+    <FluentSelect TOption="TIPI_AUTORE_RICHIESTA"
+                  Items="@tipiAutoreRichiesta"
+                  Label="Chi sono:"
+                  @bind-Value="@tipoAutoreSelezionato"
+                  OptionValue="@(t => t.ID_TIPO_AUTORE_RICHIESTA.ToString())"
+                  OptionText="@(t => t.DESCRIZIONE_TIPO_AUTORE_RICHIESTA)"
+                  Required="true"
+                  Style="width:100%;">
+    </FluentSelect>
+
+    <FluentSelect TOption="TIPI_STRUTTURA"
+                  Items="@tipiStruttura"
+                  Label="Struttura:"
+                  @bind-Value="@tipoStrutturaSelezionata"
+                  OptionValue="@(t => t.CODICE_STRUTTURA.ToString())"
+                  OptionText="@(t => t.DESCRIZIONE_STRUTTURA)"
+                  Required="true"
+                  Style="width:100%;">
+    </FluentSelect>
+
+    <FluentTextArea @bind-Value=State.Reclamo.TESTO Label="Testo del reclamo:" Rows="5" Style="width: 100%;" Required="true" Maxlength="3000"></FluentTextArea>
+
+    <FluentLabel>* Campo obbligatorio</FluentLabel>
+
+    Eventuali allegati potranno essere caricati al passaggio successivo.
+
+    <FluentStack Orientation="Orientation.Horizontal"
+                 HorizontalGap="16"
+                 Style="margin-top:20px;">
+
+        <FluentButton Appearance="Appearance.Neutral"
+                      Type="ButtonType.Button"
+                      @onclick="Annulla">
+            Annulla
+        </FluentButton>
+        <FluentButton Appearance="Appearance.Accent"
+                      Type="ButtonType.Button"
+                      @onclick="Avanti"
+                      Disabled="@(State.Step == 4)">
+            Continua
+        </FluentButton>
+    </FluentStack>
+
+</FluentStack>
+
+
+@code {
+
+}

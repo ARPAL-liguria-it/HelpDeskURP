@@ -1,0 +1,6 @@
+##[1.0.1] 2026-11-03
+### Added
+    - Salvataggio chiavi di protezione su filesystem in cartella temporanea
+
+The format is based on [Keep a Changelog]
+https://keepachangelog.com

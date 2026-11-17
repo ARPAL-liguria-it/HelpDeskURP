@@ -1,0 +1,14 @@
+﻿<p>Abbiamo ricevuto la segnalazione con codice [CODICE].</p>
+<p>Verrà presa in carico appena possibile e comunque entro 30 giorni.</p>
+<p>Si prega di non rispondere a questa email.</p>
+<p>Cognome: [COGNOME_AUTORE]</p>
+<p>Nome: [NOME_AUTORE]</p>
+<p>Email: [EMAIL_AUTORE]</p>
+<p>PEC: [PEC_AUTORE]</p>
+<p>Telefono: [TELEFONO_AUTORE]</p>
+<p>Chi sono: [DESCRIZIONE_TIPO_AUTORE]</p>
+<p>Tematica: [DESCRIZIONE_TIPO_TEMATICA]</p>
+<p>Luogo: [DESCRIZIONE_TIPO_LUOGO]</p>
+<p>Indirizzo: [INDIRIZZO]</p>
+<p>Testo della richiesta: [TESTO]</p>
+<p>[ALLEGATI]</p>

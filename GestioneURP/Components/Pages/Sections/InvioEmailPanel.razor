@@ -1,0 +1,89 @@
+@*
+  Nome del progetto: HelpDesk URP
+  Copyright (C) 2026 Agenzia regionale per la protezione dell'ambiente ligure
+  ---
+  Questo programma è software libero: puoi ridistribuirlo e/o modificarlo
+  secondo i termini della GNU Affero General Public License pubblicata dalla
+  Free Software Foundation, sia la versione 3 della licenza, sia (a tua scelta)
+  qualsiasi versione successiva.
+  ---
+  Questo programma è distribuito nella speranza che possa essere utile,
+  ma SENZA ALCUNA GARANZIA; senza nemmeno la garanzia implicita di
+  COMMERCIABILITÀ o IDONEITÀ PER UNO SCOPO PARTICOLARE. Vedi la
+  GNU Affero General Public License per ulteriori dettagli.
+  ---
+  Dovresti aver ricevuto una copia della GNU Affero General Public License
+  insieme a questo programma. In caso contrario, vedi <https://www.gnu.org/licenses/>.
+*@
+
+@using GestioneURP.Application.Services
+
+<FluentDialog @ref="_dialogo" Hidden="false" Modal="true" TrapFocus="true" PreventScroll="true"
+              HiddenChanged="ChiusuraDialogo" AriaLabelledby="invio-email-titolo"
+              Style="--dialog-width: min(56rem, calc(100vw - 2rem));">
+    <div class="email-panel" aria-busy="@_inCorso">
+        <h3 id="invio-email-titolo">Invia e-mail e chiudi pratica</h3>
+        @if (_esito is not null)
+        {
+            <FluentMessageBar Intent="@(_esito.Stato == StatoInvioEmail.Riuscito ? MessageIntent.Success : MessageIntent.Warning)" AllowDismiss="false">
+                @_esito.Messaggio
+            </FluentMessageBar>
+            <FluentStack Orientation="Orientation.Horizontal" Wrap="true">
+                <FluentButton OnClick="TornaElenco" Appearance="Appearance.Outline">Elenco segnalazioni</FluentButton>
+                <FluentButton OnClick="TornaGestione" Appearance="Appearance.Accent">Gestione pratica</FluentButton>
+            </FluentStack>
+        }
+        else if (_anteprima is not null && _editContext is not null)
+        {
+            <EditForm EditContext="_editContext" OnSubmit="ConfermaAsync">
+                <DataAnnotationsValidator />
+                <div class="email-contenuti" inert="@(_inCorso ? string.Empty : null)">
+                    <FluentLabel Style="width:100%; display:block;">Email del cittadino: @_anteprima.To</FluentLabel>
+                    <div>
+                        <strong>Oggetto:</strong> @_anteprima.PrefissoOggetto <FluentTextField @bind-Value="_modello.Suffisso" Immediate="true" Required="true" Maxlength="70" Style="width:100%;" />
+                        <ValidationMessage For="@(() => _modello.Suffisso)" />
+                    </div>
+                    <div class="email-anteprima-allegati">
+                        <div>
+                            <h4>Anteprima email</h4>
+                            <iframe title="Anteprima email in sola lettura" srcdoc="@_anteprima.Html" sandbox="" referrerpolicy="no-referrer"></iframe>
+                        </div>
+                        <div>
+                            <h4>Allegati da inviare</h4>
+                            @if (_anteprima.Allegati.Count == 0)
+                            {
+                                <p>Nessun file allegato</p>
+                            }
+                            @foreach (var allegato in _anteprima.Allegati)
+                            {
+                                <div @key="allegato.Id">
+                                    <FluentCheckbox Value="@_selezionati.Contains(allegato.Id)"
+                                                    ValueChanged="@((bool selezionato) => Seleziona(allegato.Id, selezionato))"
+                                                    Label="@allegato.NomeFile" />
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    <FluentMessageBar Intent="MessageIntent.Info" AllowDismiss="false">
+                        L'invio riuscito dell'e-mail chiuderà la pratica.
+                    </FluentMessageBar>
+                </div>
+                @if (_avviso is not null)
+                {
+                    <FluentMessageBar Intent="MessageIntent.Warning" AllowDismiss="false">@_avviso</FluentMessageBar>
+                }
+                <FluentStack Orientation="Orientation.Horizontal" Wrap="true" Style="margin-top:1rem;">
+                    <FluentButton OnClick="Annulla" Disabled="@_inCorso" Appearance="Appearance.Outline">Annulla</FluentButton>
+                    <FluentButton OnClick="ConfermaAsync" Disabled="@(_inCorso || !SuffissoValido)" Appearance="Appearance.Accent">Invia e-mail e chiudi pratica</FluentButton>
+                </FluentStack>
+            </EditForm>
+        }
+        @if (_inCorso)
+        {
+            <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" role="status" aria-live="polite">
+                <FluentProgressRing />
+                <span>@(_anteprima is null ? "Preparazione anteprima..." : "Invio e completamento della pratica in corso...")</span>
+            </FluentStack>
+        }
+    </div>
+</FluentDialog>

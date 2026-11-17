@@ -1,0 +1,56 @@
+@*
+  Nome del progetto: HelpDesk URP
+  Copyright (C) 2026 Agenzia regionale per la protezione dell'ambiente ligure
+  ---
+  Questo programma è software libero: puoi ridistribuirlo e/o modificarlo
+  secondo i termini della GNU Affero General Public License pubblicata dalla
+  Free Software Foundation, sia la versione 3 della licenza, sia (a tua scelta)
+  qualsiasi versione successiva.
+  ---
+  Questo programma è distribuito nella speranza che possa essere utile,
+  ma SENZA ALCUNA GARANZIA; senza nemmeno la garanzia implicita di
+  COMMERCIABILITÀ o IDONEITÀ PER UNO SCOPO PARTICOLARE. Vedi la
+  GNU Affero General Public License per ulteriori dettagli.
+  ---
+  Dovresti aver ricevuto una copia della GNU Affero General Public License
+  insieme a questo programma. In caso contrario, vedi <https://www.gnu.org/licenses/>.
+*@
+
+@page "/questionario/personale/{token}"
+@using QuestionariURP.Application.Services
+@inject QuestionarioAccessResolver AccessResolver
+@inject IConfiguration Configuration
+
+@if (AccessResolver.ErroreAccesso is not null)
+{
+    <div class="error-container">
+        <h1>Errore di accesso</h1>
+        <p>@AccessResolver.ErroreAccesso</p>
+    </div>
+}
+else if (AccessResolver.TipoQuestionarioRisolto is not null)
+{
+    <QuestionarioCompilazione TipoQuestionario="@AccessResolver.TipoQuestionarioRisolto"
+                               Sorgente="@AccessResolver.SorgenteRisolta"
+                               Token="@AccessResolver.TokenVerificato" />
+}
+else
+{
+    <p>Caricamento...</p>
+}
+
+@code {
+    [Parameter]
+    public string Token { get; set; } = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Token))
+        {
+            AccessResolver.ErroreAccesso = "Token mancante nell'URL.";
+            return;
+        }
+
+        await AccessResolver.RisolviAccessoPersonaleAsync(Token);
+    }
+}
